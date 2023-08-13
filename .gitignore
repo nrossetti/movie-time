@@ -1,0 +1,5 @@
+*.ini
+__pycache__
+.venvls
+/settings
+secrets.json
