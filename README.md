@@ -1,8 +1,10 @@
-## Movie Time Bot
+<p align="center">
+  <img width="128" height="128" src="https://github.com/nrossetti/movie-time/assets/23127108/d73fe97b-31c0-4b66-ab94-4bf5b55bea06" alt="Movie Time Logo">
+</p>
+<h1 align="center">Movie Time</h1>
 
-### Description
 
-Movie Time Bot is a Discord bot designed to facilitate the scheduling and promotion of movie streaming events among friends on Discord. Its purpose is to make watching movies together an enjoyable and easy-to-manage experience. Movie Time primary functions include configuring settings, generating movie posts, posting the latest movie schedules to specified channels, and managing movie events. Movie Time utilizes Letterboxd for linking movies and extracts detailed information from The Movie Database (TMDb) using their open and free API. Whether it's a casual movie night or a themed marathon, Movie Time brings friends together and takes care of the details. While currently tailored to a specific use case, future developments aim to provide more generic implementations and features.
+&nbsp; &nbsp; &nbsp; &nbsp;Movie Time Bot is a Discord bot designed to facilitate the scheduling and promotion of movie streaming events among friends on Discord. Its purpose is to make watching movies together an enjoyable and easy-to-manage experience. Movie Time primary functions include configuring settings, generating movie posts, posting the latest movie schedules to specified channels, and managing movie events. Movie Time utilizes Letterboxd for linking movies and extracts detailed information from The Movie Database (TMDb) using their open and free API. Whether it's a casual movie night or a themed marathon, Movie Time brings friends together and takes care of the details. While currently tailored to a specific use case, future developments aim to provide more generic implementations and features.
 
 ### Features
 
@@ -10,6 +12,10 @@ Movie Time Bot is a Discord bot designed to facilitate the scheduling and promot
 
 1. **Configuration Management**: Administrators can set up the bot's behavior within their guild.
 2. **Schedule and Post Generation**: Automatically generates and posts movie schedules.
+
+<p align="center">
+  <img width=400 height=468 src="https://github.com/nrossetti/movie-time/assets/23127108/3c54397a-f712-4ae6-9cdf-f34163e10fcf">
+</p>
 
 #### Planned Functionality
 
@@ -57,10 +63,6 @@ This command generates a movie post including details of the movies provided.
   - `theme_name`: Theme name for the movie night.
   - `description`: Description of the movie event.
   - `movie_urls`: A list of URLs to the movies.
-
-### Configuration Files
-
-Settings for each guild are stored in JSON files located in the `/settings` directory, following the format `guildid_settings.json`.
 
 ### Dependencies
 
