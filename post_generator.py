@@ -20,13 +20,12 @@ def create_movie_embed(movie, movie_url, start_time_obj, movie_index, number_of_
     position = positions[0] if movie_index == 1 else (positions[1] if movie_index < number_of_movies else positions[2])
 
     movie_title = f"{movie.get('name', 'Unknown Movie')} ({movie.get('year', 'Unknown Year')})"
-
-    if movie_index > 1:  # Update only if it's not the first movie
+    if movie_index == 1:  # If it's the first movie, use the given start time
+        next_start_time = start_time_obj
+    else:
         runtime_minutes = int(movie.get('runtime', 0))
         rounded_runtime = int(math.ceil(runtime_minutes / 15.0)) * 15
         next_start_time = start_time_obj + timedelta(minutes=rounded_runtime)
-    else:
-        next_start_time = start_time_obj
 
     start_time_string = next_start_time.strftime('%I:%M %p %Z')
 
