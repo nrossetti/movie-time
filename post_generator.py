@@ -30,7 +30,11 @@ def create_movie_embed(movie, movie_url, start_time_obj, movie_index, number_of_
 
     start_time_string = next_start_time.strftime('%I:%M %p %Z')
 
+
+    director = movie.get('director', 'Unknown Director').capitalize()
     movie_details = f"**{position}** {movie_title} at {start_time_string}\nDirected by {movie.get('director', 'Unknown Director')}"
+
+
     embed = Embed()
     embed.set_author(name=f"{position} {start_time_string}")
     embed.title = movie_title
@@ -43,6 +47,22 @@ def create_movie_embed(movie, movie_url, start_time_obj, movie_index, number_of_
     if 'backdrop_url' in movie and movie['backdrop_url']:
         backdrop_url = movie['backdrop_url']
         embed.set_image(url=backdrop_url)
+
+    # Add fields for additional movie information
+    embed.add_field(name="Director", value= director, inline=True)
+    embed.add_field(name="Runtime", value=f"{movie.get('runtime', 'Unknown')} minutes", inline=True)
+    embed.add_field(name="Release Date", value=movie.get('release_date', 'Unknown'), inline=True)
+    
+    def shorten_number(number):
+        if number >= 1000000:
+            return f"{number / 1000000:.1f} mil"
+        elif number >= 1000:
+            return f"{number / 1000:.0f} k"
+        else:
+            return str(number)
+
+    budget, revenue = movie.get('budget', 0), movie.get('revenue', 0)
+    embed.add_field(name="Budget | Revenue", value=f"{'-' if budget==0 else shorten_number(budget)} | {'-' if revenue==0 else shorten_number(revenue)}", inline=True)
 
     overview = movie.get('overview', 'No overview available')
     if len(overview) > 240:
