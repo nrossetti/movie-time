@@ -1,9 +1,9 @@
-## Movie Time Bot
+# Movie Time Bot
 
 ### Description
 
 Movie Time Bot is a Discord bot designed to facilitate the scheduling and promotion of movie streaming events among friends on Discord. Its purpose is to make watching movies together an enjoyable and easy-to-manage experience. Movie Time primary functions include configuring settings, generating movie posts, posting the latest movie schedules to specified channels, and managing movie events. Movie Time utilizes Letterboxd for linking movies and extracts detailed information from The Movie Database (TMDb) using their open and free API. Whether it's a casual movie night or a themed marathon, Movie Time brings friends together and takes care of the details. While currently tailored to a specific use case, future developments aim to provide more generic implementations and features.
-
+#![example](https://github.com/nrossetti/movie-time/assets/23127108/3c54397a-f712-4ae6-9cdf-f34163e10fcf)
 ### Features
 
 #### Current Functionality
