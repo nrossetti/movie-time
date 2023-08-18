@@ -14,9 +14,13 @@ def create_header_embed(movie_night):
 
     return embed
 
-def create_movie_embed(movie_event, movie_url):
-    positions = ["Starting off at", "Then at", "Finishing off at"]
-    position = positions[movie_event.index - 1]
+def create_movie_embed(movie_event, movie_url, index, total_movies):
+    if index == 0:
+        position = "Starting off at"
+    elif index == total_movies - 1:
+        position = "Finishing off at"
+    else:
+        position = "Then at"
 
     movie = movie_event.movie
     start_time_string = movie_event.start_time.strftime('%I:%M %p %Z')
