@@ -9,6 +9,7 @@ from services import create_movie_embed, create_header_embed
 from datetime import timedelta
 from math import ceil
 
+
 class MovieBot:
     def __init__(self):
         # Load secrets and configurations
@@ -154,7 +155,7 @@ class MovieBot:
                 movie = self.movie_scraper.get_movie_details_from_url(url)
 
                 # Create the movie event with the current start time
-                movie_event = MovieEvent(movie, start_time_obj, index)
+                movie_event = MovieEvent(movie, start_time_obj)
                 movie_night.add_movie_event(movie_event)  # Adding event to movie_night
 
                 # Assuming movie['runtime'] is the run time in minutes, adjust start_time_obj for the next movie
@@ -168,7 +169,8 @@ class MovieBot:
                 start_time_obj = start_time_obj.replace(second=0, microsecond=0)
 
             header_embed = create_header_embed(movie_night)
-            movie_embeds = [create_movie_embed(event, url) for event, url in zip(movie_night.movie_events, movie_urls_list)]
+            movie_embeds = [create_movie_embed(event, url, index, len(movie_urls)) for event, url in zip(movie_night.movie_events, movie_urls_list)]
+
 
             all_embeds = [header_embed] + movie_embeds
             latest_post_content = all_embeds
