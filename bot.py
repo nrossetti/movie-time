@@ -2,6 +2,7 @@ from datetime import datetime
 import pytz, re, discord
 from discord import app_commands
 from services.movie_scraper import MovieScraper
+from services.discord.event import DiscordEvents
 from utils.secret_manager import SecretManager
 from utils.config_manager import ConfigManager
 from models import MovieEvent, MovieNight
@@ -28,7 +29,8 @@ class MovieBot:
         self.tree = app_commands.CommandTree(self.client)
 
         self.movie_scraper = MovieScraper(self.api_key)
-
+        # Initialize DiscordEvents class
+        self.discord_events = DiscordEvents(discord_token=self.token)
         self.US_TIMEZONE_ABBREVIATIONS = {
             'PST': 'America/Los_Angeles',
             'MST': 'America/Denver',
@@ -176,6 +178,13 @@ class MovieBot:
             latest_post_content = all_embeds
 
             await interaction.followup.send(embeds=all_embeds)
+        
+        @self.tree.command(name="list_events", description="list_events.", guild=discord.Object(id=self.guild_id))
+        async def list(interaction: discord.Interaction):
+            response_messages = []
+            events = await self.discord_events.list_guild_events(self.guild_id)
+            await interaction.followup.send("event list")
+
         @self.client.event
         async def on_ready():
             await self.tree.sync(guild=discord.Object(id=self.guild_id))

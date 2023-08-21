@@ -4,13 +4,14 @@ def create_header_embed(movie_night):
     number_map = {1: "SINGLE", 2: "DOUBLE", 3: "TRIPLE", 4: "QUAD", 5: "PENTA", 6: "HEXA"}
 
     number_of_movies = len(movie_night.movie_events)
-    author_name = f"{number_map.get(number_of_movies, 'UNKNOWN')} HEADER TONIGHT"
+    announcment = f"{number_map.get(number_of_movies, 'UNKNOWN')} HEADER TONIGHT"
     title = movie_night.theme_name if movie_night.theme_name else 'Unknown Theme'
     description = f"*{movie_night.description if movie_night.description else 'No description available'}*"
     embed = Embed()
-    embed.set_author(name=author_name)
+    embed.set_author(name=announcment)
     embed.title = title
     embed.description = description
+    embed.set_footer(icon_url = movie_night.invoking_user_avatar_url, text = "hosted by " + movie_night.invoking_user_name)
 
     return embed
 
@@ -27,10 +28,9 @@ def create_movie_embed(movie_event, movie_url, index, total_movies):
     movie_title = f"{movie['name']} ({movie['year']})"
     director = movie['director'].capitalize()
 
-    movie_details = f"**{position}** {movie_title} at {start_time_string}\nDirected by {director}"
     embed = Embed()
     embed.set_author(name=f"{position} {start_time_string}")
-    embed.title = movie_title
+    embed.title = movie_title 
     embed.url = movie_url
 
     if movie['image_url']:
@@ -49,5 +49,5 @@ def create_movie_embed(movie_event, movie_url, index, total_movies):
         last_space_index = overview[:240].rfind(' ')
         overview = overview[:last_space_index] + '...'
     
-    embed.description = movie_details + "\n" + overview
+    embed.description = overview
     return embed
