@@ -9,7 +9,7 @@ from models import MovieEvent, MovieNight
 from services import create_movie_embed, create_header_embed
 from datetime import timedelta
 from math import ceil
-
+from datetime import datetime
 
 class MovieBot:
     def __init__(self):
@@ -109,7 +109,7 @@ class MovieBot:
         async def post(interaction):
             global latest_post_content
 
-            announcement_channel_id = self.get_setting(interaction.guild.id, 'announcement_channel')
+            announcement_channel_id = self.config_manager.get_setting(interaction.guild.id, 'announcement_channel')
             if announcement_channel_id is None:
                 await interaction.response.send_message("Announcement channel ID not found. Make sure it's set correctly.")
                 return
@@ -117,7 +117,7 @@ class MovieBot:
             announcement_channel = interaction.guild.get_channel(int(announcement_channel_id))
 
             if latest_post_content:
-                ping_role_id = self.get_setting(interaction.guild.id, 'ping_role')
+                ping_role_id = self.config_manager.get_setting(interaction.guild.id, 'ping_role')
                 
                 content_with_ping = ""
                 if ping_role_id:
@@ -181,9 +181,40 @@ class MovieBot:
         
         @self.tree.command(name="list_events", description="list_events.", guild=discord.Object(id=self.guild_id))
         async def list(interaction: discord.Interaction):
-            response_messages = []
             events = await self.discord_events.list_guild_events(self.guild_id)
-            await interaction.followup.send("event list")
+
+            # If there are no events
+            if not events:
+                await interaction.response.send_message("No events found.")
+                return
+
+            # Building the message
+            message = "Here's a list of events:\n"
+            for event in events:
+                start_time = datetime.fromisoformat(event['scheduled_start_time'].replace('Z', '+00:00'))
+                formatted_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
+                message += f"- {event['name']} on {formatted_time}\n"
+
+            await interaction.response.send_message(message)
+
+        @self.tree.command(name="create_event", description="create_event.", guild=discord.Object(id=self.guild_id))
+        async def create_event(interaction: discord.Interaction):
+            event_name = "Your Event Name" # Define appropriately
+            event_description = "Your Event Description" # Define appropriately
+            event_start_time = "2023-09-16T01:18:42" # Define appropriately
+            event_end_time = "2023-09-16T03:18:42" # Define appropriately
+            event_metadata = {'location': ''} # Define appropriately
+
+            await self.discord_events.create_guild_event(
+                guild_id=self.guild_id,
+                event_name=event_name,
+                event_description=event_description,
+                event_start_time=event_start_time,
+                event_end_time=event_end_time,
+                event_metadata=event_metadata
+            )
+            await interaction.response.send_message("Event created successfully!")
+
 
         @self.client.event
         async def on_ready():

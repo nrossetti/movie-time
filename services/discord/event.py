@@ -8,7 +8,7 @@ class DiscordEvents:
         self.base_api_url = 'https://discord.com/api/v8'
         self.auth_headers = {
             'Authorization':f'Bot {discord_token}',
-            'User-Agent':'DiscordBot (https://your.bot/url) Python/3.9 aiohttp/3.8.1',
+            'User-Agent':'DiscordBot (https://discord.com/api/webhooks/1142979632249970818/5aVo2mZklGdOCA6fw-IsvDCNYmC4g7GafzTFklNLl_BfRESoaRlp0j1vKqLnd4rRAwP9) Python/3.9 aiohttp/3.8.1',
             'Content-Type':'application/json'
         }
 
@@ -24,10 +24,11 @@ class DiscordEvents:
                     response_list = json.loads(await response.read())
             except Exception as e:
                 print(f'EXCEPTION: {e}')
+                response_list = []  # Return an empty list or some other error indication
             finally:
                 await session.close()
-        return response_list
-
+            return response_list
+            
     async def create_guild_event(
         self,
         guild_id: str,
@@ -39,9 +40,6 @@ class DiscordEvents:
         event_privacy_level=2,
         channel_id=None
     ) -> None:
-        '''Creates a guild event using the supplied arguments
-        The expected event_metadata format is event_metadata={'location': 'YOUR_LOCATION_NAME'}
-        The required time format is %Y-%m-%dT%H:%M:%S'''
         event_create_url = f'{self.base_api_url}/guilds/{guild_id}/scheduled-events'
         event_data = json.dumps({
             'name': event_name,
@@ -57,8 +55,12 @@ class DiscordEvents:
         async with aiohttp.ClientSession(headers=self.auth_headers) as session:
             try:
                 async with session.post(event_create_url, data=event_data) as response:
+                    response_text = await response.text()  # Capture the response text here
                     response.raise_for_status()
                     assert response.status == 200
+            except aiohttp.ClientResponseError as e:
+                print(f'EXCEPTION: {e.status}, message=\'{e.message}\', url={e.request_info.url}')
+                print(f'Error details: {response_text}')
             except Exception as e:
                 print(f'EXCEPTION: {e}')
             finally:
