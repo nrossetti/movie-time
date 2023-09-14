@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from db_models import MovieNight, MovieEvent, Movie
+from .db_models import MovieNight, MovieEvent, Movie
 
 class DBManager:
     def __init__(self, db_url):
