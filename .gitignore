@@ -1,5 +1,6 @@
 *.ini
 __pycache__
-.venvls
+.venvs
 /storage
 secrets.json
+*.db
