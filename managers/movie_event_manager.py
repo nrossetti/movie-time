@@ -43,7 +43,8 @@ class MovieEventManager:
         return self.db_session.query(MovieEvent).filter_by(id=movie_event_id).first()
     
     def find_last_movie_event_by_movie_night_id(self, movie_night_id):
-        return self.db_session.query(MovieEvent)\
+        result = self.db_session.query(MovieEvent)\
             .filter_by(movie_night_id=movie_night_id)\
             .order_by(desc(MovieEvent.start_time))\
             .first()
+        return result

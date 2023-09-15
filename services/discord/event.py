@@ -24,8 +24,8 @@ class DiscordEvents:
                     response_list = json.loads(await response.read())
             except Exception as e:
                 print(f'EXCEPTION: {e}')
-                response_list = []  # Return an empty list or some other error indication
-            finally:
+                response_list = [] 
+
                 await session.close()
             return response_list
             
@@ -55,7 +55,7 @@ class DiscordEvents:
         async with aiohttp.ClientSession(headers=self.auth_headers) as session:
             try:
                 async with session.post(event_create_url, data=event_data) as response:
-                    response_text = await response.text()  # Capture the response text here
+                    response_text = await response.text() 
                     response.raise_for_status()
                     assert response.status == 200
             except aiohttp.ClientResponseError as e:

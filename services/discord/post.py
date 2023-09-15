@@ -39,7 +39,6 @@ def create_movie_embed(movie_event, movie_url, index, total_movies):
     if movie['backdrop_url']:
         embed.set_image(url=movie['backdrop_url'])
 
-    # Add fields for additional movie information
     embed.add_field(name="Director", value=director, inline=True)
     embed.add_field(name="Runtime", value=f"{movie['runtime']} minutes", inline=True)
     embed.add_field(name="Release Date", value=movie['release_date'], inline=True)

@@ -10,7 +10,7 @@ class MovieNight(Base):
     id = Column(Integer, primary_key=True)
     title = Column(String)
     description = Column(String)
-    start_time = Column(DateTime)  # <-- Add this line
+    start_time = Column(DateTime)
 
     events = relationship("MovieEvent", back_populates="movie_night")
     
