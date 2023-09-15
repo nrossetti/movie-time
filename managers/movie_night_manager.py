@@ -1,12 +1,13 @@
 from database.db_models import MovieNight
 from sqlalchemy.orm import Session
+from datetime import datetime
 
 class MovieNightManager:
     def __init__(self, db_session: Session):
         self.db_session = db_session
 
-    def create_movie_night(self, title, description):
-        new_movie_night = MovieNight(title=title, description=description)
+    def create_movie_night(self, title, description, start_time: datetime = None):
+        new_movie_night = MovieNight(title=title, description=description, start_time=start_time)
         self.db_session.add(new_movie_night)
         self.db_session.commit()
         return new_movie_night.id
@@ -38,3 +39,6 @@ class MovieNightManager:
 
     def find_movie_night_by_id(self, movie_night_id):
         return self.db_session.query(MovieNight).filter_by(id=movie_night_id).first()
+        
+    def find_movie_night_by_title(self, title):
+        return self.db_session.query(MovieNight).filter_by(title=title).first()

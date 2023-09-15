@@ -10,9 +10,10 @@ class MovieNight(Base):
     id = Column(Integer, primary_key=True)
     title = Column(String)
     description = Column(String)
+    start_time = Column(DateTime)  # <-- Add this line
 
     events = relationship("MovieEvent", back_populates="movie_night")
-
+    
 class MovieEvent(Base):
     __tablename__ = 'movie_events'
 
@@ -41,5 +42,5 @@ class Movie(Base):
 
     events = relationship("MovieEvent", back_populates="movie")
 
-engine = create_engine('sqlite:///movie_nights.db')
+engine = create_engine('sqlite:///movie_time.db')
 Base.metadata.create_all(engine)

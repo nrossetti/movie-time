@@ -1,5 +1,6 @@
 from database.db_models import MovieEvent, MovieNight, Movie
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 
 class MovieEventManager:
     def __init__(self, db_session: Session):
@@ -40,3 +41,9 @@ class MovieEventManager:
 
     def find_movie_event_by_id(self, movie_event_id):
         return self.db_session.query(MovieEvent).filter_by(id=movie_event_id).first()
+    
+    def find_last_movie_event_by_movie_night_id(self, movie_night_id):
+        return self.db_session.query(MovieEvent)\
+            .filter_by(movie_night_id=movie_night_id)\
+            .order_by(desc(MovieEvent.start_time))\
+            .first()

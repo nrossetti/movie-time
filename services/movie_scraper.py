@@ -8,6 +8,7 @@ class MovieScraper:
         self.tmdb = TMDb()
         self.tmdb.api_key = self.api_key
         self.movie = Movie()
+    
     def extract_movie_details_from_letterboxd(self, url):
         try:
             response = requests.get(url)
