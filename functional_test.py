@@ -29,7 +29,7 @@ print(f"Created Movie Night with ID: {movie_night_id}")
 print("Simulating /addmovie or /addmovies command...")
 movie_urls = [
     "https://letterboxd.com/film/national-treasure/",
-    "https://letterboxd.com/film/the-retirement-plan/",
+    "https://letterboxd.com/film/the-retirement-plan/",                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
     "https://letterboxd.com/film/dream-scenario/",
 ]
 
