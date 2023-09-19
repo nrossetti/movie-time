@@ -11,9 +11,11 @@ class MovieNight(Base):
     title = Column(String)
     description = Column(String)
     start_time = Column(DateTime)
+    current_movie_index = Column(Integer, default=0)  # New column
+    status = Column(Integer, default=0)  # New column (0=Not Started, 1=Started, 2=Finished)
 
     events = relationship("MovieEvent", back_populates="movie_night")
-    
+
 class MovieEvent(Base):
     __tablename__ = 'movie_events'
 
@@ -21,6 +23,7 @@ class MovieEvent(Base):
     movie_night_id = Column(Integer, ForeignKey('movie_nights.id'))
     movie_id = Column(Integer, ForeignKey('movies.id'))
     start_time = Column(DateTime)
+    discord_id = Column(String)  # New column for Discord ID
 
     movie_night = relationship("MovieNight", back_populates="events")
     movie = relationship("Movie", back_populates="events")
@@ -39,7 +42,8 @@ class Movie(Base):
     revenue = Column(Integer)
     overview = Column(String)
     release_date = Column(String)
-
+    url = Column(String)
+    
     events = relationship("MovieEvent", back_populates="movie")
 
 engine = create_engine('sqlite:///movie_time.db')

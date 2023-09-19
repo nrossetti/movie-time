@@ -9,9 +9,9 @@ from managers.movie_event_manager import MovieEventManager
 from services.movie_night_service import MovieNightService
 from services.movie_scraper import MovieScraper
 from bot_core.commands import MovieCommands  # Import the class
+from utils.config_manager import ConfigManager
 
-
-# Initialize the SecretManager and fetch API key
+config_manager = ConfigManager()
 secrets = SecretManager().load_secrets()
 token = secrets['token']
 guild_id = secrets['guild_id']
@@ -24,14 +24,9 @@ movie_night_manager = MovieNightManager(db_session)
 movie_night_service = MovieNightService(movie_night_manager, MovieManager(db_session), movie_scraper, movie_event_manager)
 movie_commands = MovieCommands(movie_night_manager, movie_night_service)
 
-
-
-# Initialize Bot
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
-
-
 
 @tree.command(name='create_movie_night', description="Create a new movie night", guild=discord.Object(id=guild_id))
 async def create_movie_night_command(interaction, title: str, description: str, start_time: str = None):
@@ -41,12 +36,19 @@ async def create_movie_night_command(interaction, title: str, description: str, 
         await interaction.response.send_message(str(e))
 
 @tree.command(name='add_movie', description="Add a movie to a movie night", guild=discord.Object(id=guild_id))
-async def add_movie_command(interaction, movie_night_id: int, movie_url: str):
+async def add_movie_command(interaction,  movie_url: str, movie_night_id: int = None):
     try:
-        await movie_commands.add_movie(interaction, movie_night_id, movie_url)
+        await movie_commands.add_movie(interaction, movie_url, movie_night_id)
     except ValueError as e:
         await interaction.response.send_message(str(e))
 
+@tree.command(name='post_movie_night', description="Post the movie night", guild=discord.Object(id=guild_id))
+async def post_movie_night_command(interaction, movie_night_id: int = None):
+    try:
+        await movie_commands.post_movie_night(interaction, movie_night_id)
+    except ValueError as e:
+        await interaction.response.send_message(str(e))
+        
 @client.event
 async def on_ready():
     await tree.sync(guild=discord.Object(id=guild_id))

@@ -44,5 +44,16 @@ class MovieNightManager:
         return self.db_session.query(MovieNight).filter_by(title=title).first()
     
     def get_most_recent_movie_night_id(self):
-        most_recent = self.db_session.query(MovieNight).order_by(MovieNight.start_time.desc()).first()
+        most_recent = self.db_session.query(MovieNight).order_by(MovieNight.id.desc()).first()
         return most_recent.id if most_recent else None
+        
+    def get_movie_night(self, movie_night_id):
+        try:
+            movie_night = self.db_session.query(MovieNight).filter(MovieNight.id == movie_night_id).first()
+            if movie_night:
+                return movie_night
+            else:
+                raise ValueError(f"No Movie Night found with ID: {movie_night_id}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
