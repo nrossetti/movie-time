@@ -2,17 +2,18 @@ from services.movie_scraper import MovieScraper
 from datetime import timedelta
 
 class MovieNightService:
-    def __init__(self, movie_night_manager, movie_manager, movie_event_manager, movie_scraper: MovieScraper):
+    def __init__(self, movie_night_manager, movie_manager, movie_scraper: MovieScraper, movie_event_manager=None):
         self.movie_night_manager = movie_night_manager
         self.movie_manager = movie_manager
         self.movie_event_manager = movie_event_manager
         self.movie_scraper = movie_scraper
-
+        self.api_key = movie_scraper.api_key
+        
     def round_to_next_quarter_hour(self, time):
         minutes_to_next_quarter_hour = 15 - time.minute % 15
         return time + timedelta(minutes=minutes_to_next_quarter_hour)
 
-    def add_movie_to_movie_night(self, movie_night_id, movie_url, api_key):
+    def add_movie_to_movie_night(self, movie_night_id, movie_url):
         movie_details = self.movie_scraper.get_movie_details_from_url(movie_url)
         
         if not movie_details:

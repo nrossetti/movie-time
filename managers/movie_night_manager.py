@@ -42,3 +42,7 @@ class MovieNightManager:
         
     def find_movie_night_by_title(self, title):
         return self.db_session.query(MovieNight).filter_by(title=title).first()
+    
+    def get_most_recent_movie_night_id(self):
+        most_recent = self.db_session.query(MovieNight).order_by(MovieNight.start_time.desc()).first()
+        return most_recent.id if most_recent else None
