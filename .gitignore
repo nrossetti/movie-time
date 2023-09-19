@@ -3,3 +3,4 @@ __pycache__
 .venvls
 /storage
 secrets.json
+movie_time.db
