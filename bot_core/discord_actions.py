@@ -11,7 +11,7 @@ def create_header_embed(movie_night):
     embed.set_author(name=announcment)
     embed.title = title
     embed.description = description
-    # Assuming you have a way to get invoking_user_avatar_url and invoking_user_name
+    # invoking_user_avatar_url and invoking_user_name
     # embed.set_footer(icon_url = movie_night.invoking_user_avatar_url, text = "hosted by " + movie_night.invoking_user_name)
 
     return embed
@@ -39,7 +39,6 @@ def create_movie_embed(movie_event, index, total_movies):
     if movie.backdrop_url:
         embed.set_image(url=movie.backdrop_url)
 
-    # Add fields for additional movie information
     embed.add_field(name="Director", value=director, inline=True)
     embed.add_field(name="Runtime", value=f"{movie.runtime} minutes", inline=True)
     embed.add_field(name="Release Date", value=movie.release_date, inline=True)

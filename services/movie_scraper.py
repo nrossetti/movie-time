@@ -85,7 +85,7 @@ class MovieScraper:
             if title and year:
                 details = self.get_movie_details_from_tmdb_by_title_and_year(title, year)
                 if details:
-                    details['url'] = normalized_url  # Add this line to include the URL
+                    details['url'] = normalized_url 
                 return details
         else:
             return None
