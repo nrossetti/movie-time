@@ -1,7 +1,10 @@
-from discord import Embed
+from discord import Interaction, Embed
 
-def create_header_embed(movie_night):
+def create_header_embed(interaction, movie_night):
     number_map = {1: "SINGLE", 2: "DOUBLE", 3: "TRIPLE", 4: "QUAD", 5: "PENTA", 6: "HEXA"}
+    invoking_user = interaction.user
+    invoking_user_name = invoking_user.display_name
+    invoking_user_avatar_url = invoking_user.display_avatar.url
 
     number_of_movies = len(movie_night.events)
     announcment = f"{number_map.get(number_of_movies, 'UNKNOWN')} HEADER TONIGHT"
@@ -11,8 +14,7 @@ def create_header_embed(movie_night):
     embed.set_author(name=announcment)
     embed.title = title
     embed.description = description
-    # invoking_user_avatar_url and invoking_user_name
-    # embed.set_footer(icon_url = movie_night.invoking_user_avatar_url, text = "hosted by " + movie_night.invoking_user_name)
+    embed.set_footer(icon_url = invoking_user_avatar_url, text = "hosted by " + invoking_user_name)
 
     return embed
 

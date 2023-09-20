@@ -31,9 +31,8 @@ class MovieCommands:
         else:
             await interaction.response.send_message("Failed to add movie.")
 
-    async def post_movie_night(self, interaction, movie_night_id: int = None):
-        await interaction.response.defer()  # Defer the response
-
+    async def post_movie_night(self, interaction, movie_night_id: int = None): 
+        await interaction.response.defer()
         if not movie_night_id:
             movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
             if not movie_night_id:
@@ -45,20 +44,16 @@ class MovieCommands:
             await interaction.followup.send(f"No Movie Night found with ID: {movie_night_id}")
             return
 
-        # Create a list to hold all the embeds
         all_embeds = []
-
-        # Create and add the header embed
-        header_embed = create_header_embed(movie_night)
+        
+        header_embed = create_header_embed(interaction, movie_night)
         all_embeds.append(header_embed)
 
-        # Create and add the movie embeds
         total_movies = len(movie_night.events)
         for index, movie_event in enumerate(movie_night.events):
             movie_embed = create_movie_embed(movie_event, index, total_movies)
             all_embeds.append(movie_embed)
 
-        # Send all embeds in a single message
         await interaction.followup.send(embeds=all_embeds)
 
 class ConfigCommands:

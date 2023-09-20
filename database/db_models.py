@@ -23,7 +23,7 @@ class MovieEvent(Base):
     movie_night_id = Column(Integer, ForeignKey('movie_nights.id'))
     movie_id = Column(Integer, ForeignKey('movies.id'))
     start_time = Column(DateTime)
-    discord_id = Column(String)
+    discord_event_id = Column(String)
 
     movie_night = relationship("MovieNight", back_populates="events")
     movie = relationship("Movie", back_populates="events")
