@@ -24,7 +24,8 @@ class MovieManager:
             budget=int(movie_details['budget']),
             revenue=int(movie_details['revenue']),
             overview=movie_details['overview'],
-            release_date=movie_details['release_date']
+            release_date=movie_details['release_date'],
+            url=movie_details.get('url')
         )
 
         self.db_session.add(new_movie)

@@ -34,7 +34,7 @@ class DBManager:
             revenue=revenue,
             overview=overview,
             release_date=release_date,
-            url=url  # Store the URL
+            url=url 
         )
         session.add(new_movie)
         session.commit()

@@ -83,7 +83,10 @@ class MovieScraper:
         if normalized_url and "letterboxd.com" in normalized_url:
             title, year = self.extract_movie_details_from_letterboxd(normalized_url)
             if title and year:
-                return self.get_movie_details_from_tmdb_by_title_and_year(title, year)
+                details = self.get_movie_details_from_tmdb_by_title_and_year(title, year)
+                if details:
+                    details['url'] = normalized_url  # Add this line to include the URL
+                return details
         else:
             return None
 
