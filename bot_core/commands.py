@@ -1,4 +1,5 @@
 from datetime import datetime
+import discord
 from managers.movie_night_manager import MovieNightManager
 from bot_core.discord_actions import create_header_embed, create_movie_embed
 from bot_core.helpers import parse_start_time
@@ -46,3 +47,32 @@ class MovieCommands:
             
         movie_events_list = [f"Movie Event ID: {movie_event.id}, Movie: {movie_event.movie.name}" for movie_event in movie_night.events]
         await interaction.response.send_message(f"Movie Events: {', '.join(movie_events_list)}")
+
+class ConfigCommands:
+    def __init__(self, config_manager):
+        self.config_manager = config_manager
+
+    async def config(self, interaction, stream_channel: discord.VoiceChannel = None, announcement_channel: discord.TextChannel = None, ping_role: discord.Role = None):
+        response_messages = []
+        config_dict = {}
+
+        if not any([stream_channel, announcement_channel, ping_role]):
+            await interaction.response.send_message("Use the config command to set up the movie bot. You can configure the stream channel, announcement channel, and ping role.")
+            return
+
+        if stream_channel:
+            config_dict['stream_channel'] = stream_channel.id
+            response_messages.append(f"Stream channel set to {stream_channel.mention}")
+
+        if announcement_channel:
+            config_dict['announcement_channel'] = announcement_channel.id
+            response_messages.append(f"Announcement channel set to {announcement_channel.mention}")
+
+        if ping_role:
+            config_dict['ping_role'] = ping_role.id
+            response_messages.append(f"Ping role set to **{ping_role.name}**")
+
+        self.config_manager.save_settings(interaction.guild.id, config_dict)
+
+        await interaction.response.defer()
+        await interaction.followup.send("\n".join(response_messages))

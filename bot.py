@@ -8,8 +8,9 @@ from managers.movie_manager import MovieManager
 from managers.movie_event_manager import MovieEventManager
 from services.movie_night_service import MovieNightService
 from services.movie_scraper import MovieScraper
-from bot_core.commands import MovieCommands  # Import the class
+from bot_core.commands import MovieCommands, ConfigCommands # Import the class
 from utils.config_manager import ConfigManager
+
 
 config_manager = ConfigManager()
 secrets = SecretManager().load_secrets()
@@ -19,10 +20,12 @@ api_key = secrets['api_key']
 db_session = SessionLocal()
 movie_scraper = MovieScraper(api_key)
 movie_manager = MovieManager(db_session)
+config_manager = ConfigManager()
 movie_event_manager = MovieEventManager(db_session)
 movie_night_manager = MovieNightManager(db_session)
 movie_night_service = MovieNightService(movie_night_manager, MovieManager(db_session), movie_scraper, movie_event_manager)
 movie_commands = MovieCommands(movie_night_manager, movie_night_service)
+config_commands = ConfigCommands(config_manager)
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
@@ -48,7 +51,11 @@ async def post_movie_night_command(interaction, movie_night_id: int = None):
         await movie_commands.post_movie_night(interaction, movie_night_id)
     except ValueError as e:
         await interaction.response.send_message(str(e))
-        
+
+@tree.command(name='config', description="Configs the movie bot.", guild=discord.Object(id=guild_id))
+async def config_command(interaction, stream_channel: discord.VoiceChannel = None, announcement_channel: discord.TextChannel = None, ping_role: discord.Role = None):
+    await config_commands.config(interaction, stream_channel, announcement_channel, ping_role)
+
 @client.event
 async def on_ready():
     await tree.sync(guild=discord.Object(id=guild_id))
