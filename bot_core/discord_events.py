@@ -2,10 +2,10 @@ import aiohttp
 import json
 
 class DiscordEvents:
-    def __init__(self):
+    def __init__(self, discord_token):
         self.base_api_url = 'https://discord.com/api/v8'
         self.auth_headers = {
-            'Authorization': f'Bot MTEzODkzMDM4NjUyMTU2NzI0Mg.GKXTjj.ZgmwMKVLG92RuIC4QJpjaI1nKrPl8u1l6j-mXs',
+            'Authorization': f'Bot {discord_token}',
             'Content-Type': 'application/json'
         }
 

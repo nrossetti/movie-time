@@ -26,7 +26,7 @@ movie_night_manager = MovieNightManager(db_session)
 movie_night_service = MovieNightService(movie_night_manager, MovieManager(db_session), movie_scraper, movie_event_manager)
 movie_commands = MovieCommands(movie_night_manager, movie_night_service)
 config_commands = ConfigCommands(config_manager)
-event_test_commands = EventTestCommands()
+event_test_commands = EventTestCommands(token)
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)

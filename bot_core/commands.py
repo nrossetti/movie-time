@@ -87,8 +87,8 @@ class ConfigCommands:
         await interaction.followup.send("\n".join(response_messages))
 
 class EventTestCommands:
-    def __init__(self):
-        self.discord_events = DiscordEvents()
+    def __init__(self, discord_token):
+        self.discord_events = DiscordEvents(discord_token)
 
     async def create_test_event(self, interaction, name: str, description: str, start_time: str, end_time: str):
         guild_id = str(interaction.guild.id)
