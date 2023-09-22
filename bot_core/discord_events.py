@@ -1,5 +1,5 @@
 import aiohttp
-import json
+
 
 class DiscordEvents:
     def __init__(self, discord_token):
@@ -9,8 +9,20 @@ class DiscordEvents:
             'Content-Type': 'application/json'
         }
 
-    async def create_event(self, guild_id, event_data):
-        url = f'{self.base_api_url}/guilds/{guild_id}/scheduled-events'
+    async def create_event(self, guild_id, channel_id, name, description, start_time, image_data=None):
+        event_data = {
+            'name': name,
+            'description': description,
+            'scheduled_start_time': start_time,
+            'entity_type': 2,
+            'channel_id': channel_id,
+            'privacy_level': 2,
+        }
+        
+        if image_data:
+            event_data['image'] = image_data
+
+        url = f'https://discord.com/api/v8/guilds/{guild_id}/scheduled-events'
         async with aiohttp.ClientSession() as session:
             async with session.post(url, headers=self.auth_headers, json=event_data) as response:
                 return await response.json()

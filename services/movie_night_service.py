@@ -1,19 +1,25 @@
 from services.movie_scraper import MovieScraper
-from datetime import timedelta
+from bot_core.discord_events import DiscordEvents
+from datetime import datetime, timedelta
+from utils.image_util import download_image, convert_image_format
+import base64
 
 class MovieNightService:
-    def __init__(self, movie_night_manager, movie_manager, movie_scraper: MovieScraper, movie_event_manager=None):
+    def __init__(self, movie_night_manager, movie_manager, movie_scraper: MovieScraper, movie_event_manager, token, guild_id, stream_channel):
         self.movie_night_manager = movie_night_manager
         self.movie_manager = movie_manager
         self.movie_event_manager = movie_event_manager
         self.movie_scraper = movie_scraper
         self.api_key = movie_scraper.api_key
+        self.guild_id = guild_id
+        self.stream_channel = stream_channel
+        self.discord_events = DiscordEvents(token)
         
     def round_to_next_quarter_hour(self, time):
         minutes_to_next_quarter_hour = 15 - time.minute % 15
         return time + timedelta(minutes=minutes_to_next_quarter_hour)
 
-    def add_movie_to_movie_night(self, movie_night_id, movie_url):
+    async def add_movie_to_movie_night(self, movie_night_id, movie_url):
         movie_details = self.movie_scraper.get_movie_details_from_url(movie_url)
         
         if not movie_details:
@@ -42,11 +48,49 @@ class MovieNightService:
             last_movie_end_time = movie_night.start_time
         
         new_start_time = self.round_to_next_quarter_hour(last_movie_end_time)
-        
+        new_start_time_iso = new_start_time.isoformat()
+
         new_movie_event_id = self.movie_event_manager.create_movie_event(movie_night_id, movie_id, new_start_time)
-        
-        return new_movie_event_id
 
+        movie_event = self.movie_event_manager.find_movie_event_by_id(new_movie_event_id)
 
-    
-    
+        if movie_event:
+            movie = self.movie_manager.find_movie_by_id(movie_event.movie_id)
+
+            if movie:
+                movie_duration = timedelta(minutes=movie.runtime)
+                end_time = new_start_time + movie_duration
+                end_time_iso = end_time.isoformat()
+
+                backdrop_url = movie_details.get('backdrop_url', None)
+
+                if backdrop_url:
+                    image_bytes = await download_image(backdrop_url)
+                    if image_bytes:
+                        converted_image_bytes = convert_image_format(image_bytes, format="JPEG")
+                        
+                        base64_image = base64.b64encode(converted_image_bytes).decode()
+                        
+                        image_data = f"data:image/jpeg;base64,{base64_image}"
+                    else:
+                        image_data = None
+                else:
+                    image_data = None
+
+                discord_event = await self.discord_events.create_event(
+                    self.guild_id,
+                    self.stream_channel,
+                    movie.name,
+                    movie.overview,
+                    new_start_time_iso,
+                    image_data=image_data  
+                )
+
+            if discord_event and 'id' in discord_event:
+                movie_event.discord_event_id = discord_event['id']
+                self.movie_event_manager.db_session.commit()  
+                return new_movie_event_id
+            else:
+                print(f"Failed to create Discord event: {discord_event}")
+                return None
+

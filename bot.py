@@ -23,14 +23,18 @@ movie_manager = MovieManager(db_session)
 config_manager = ConfigManager()
 movie_event_manager = MovieEventManager(db_session)
 movie_night_manager = MovieNightManager(db_session)
-movie_night_service = MovieNightService(movie_night_manager, MovieManager(db_session), movie_scraper, movie_event_manager)
+stream_channel = config_manager.get_setting(guild_id, 'stream_channel')
+movie_night_service = MovieNightService(movie_night_manager, MovieManager(db_session), movie_scraper, movie_event_manager, token, guild_id, stream_channel)
 movie_commands = MovieCommands(movie_night_manager, movie_night_service)
 config_commands = ConfigCommands(config_manager)
+
 event_test_commands = EventTestCommands(token)
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
+
+
 
 @tree.command(name='create_movie_night', description="Create a new movie night", guild=discord.Object(id=guild_id))
 async def create_movie_night_command(interaction, title: str, description: str, start_time: str = None):
