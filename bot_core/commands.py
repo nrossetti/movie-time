@@ -26,7 +26,7 @@ class MovieCommands:
                 await interaction.response.send_message("No movie nights found.")
                 return
 
-        movie_event_id = self.movie_night_service.add_movie_to_movie_night(movie_night_id, movie_url)
+        movie_event_id = await self.movie_night_service.add_movie_to_movie_night(movie_night_id, movie_url)
         if movie_event_id:
             await interaction.response.send_message(f"Added Movie to Movie Night. Movie Event ID is: {movie_event_id}")
         else:
