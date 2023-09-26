@@ -10,6 +10,7 @@ from services.movie_night_service import MovieNightService
 from services.movie_scraper import MovieScraper
 from bot_core.commands import MovieCommands, ConfigCommands, EventTestCommands
 from utils.config_manager import ConfigManager
+from bot_core.helpers import TimeZones
 
 
 config_manager = ConfigManager()
@@ -23,8 +24,12 @@ movie_manager = MovieManager(db_session)
 config_manager = ConfigManager()
 movie_event_manager = MovieEventManager(db_session)
 movie_night_manager = MovieNightManager(db_session)
+ping_role = config_manager.get_setting(guild_id, 'ping_role')
+announcment_channel = config_manager.get_setting(guild_id, 'announcment_channel')
 stream_channel = config_manager.get_setting(guild_id, 'stream_channel')
-movie_night_service = MovieNightService(movie_night_manager, MovieManager(db_session), movie_scraper, movie_event_manager, token, guild_id, stream_channel)
+server_timezone_str = config_manager.get_setting(guild_id, 'timezone') or 'UTC'
+server_timezone = TimeZones[server_timezone_str]
+movie_night_service = MovieNightService(movie_night_manager, MovieManager(db_session), movie_scraper, movie_event_manager, token, guild_id, stream_channel, server_timezone)
 movie_commands = MovieCommands(movie_night_manager, movie_night_service)
 config_commands = ConfigCommands(config_manager)
 
@@ -37,9 +42,9 @@ tree = app_commands.CommandTree(client)
 
 
 @tree.command(name='create_movie_night', description="Create a new movie night", guild=discord.Object(id=guild_id))
-async def create_movie_night_command(interaction, title: str, description: str, start_time: str = None):
+async def create_movie_night_command(interaction, title: str, description: str, start_time: str = None,):
     try:
-        await movie_commands.create_movie_night(interaction, title, description, start_time)
+        await movie_commands.create_movie_night(interaction, title, description, server_timezone, start_time )
     except ValueError as e:
         await interaction.response.send_message(str(e))
 
@@ -58,8 +63,8 @@ async def post_movie_night_command(interaction, movie_night_id: int = None):
         await interaction.response.send_message(str(e))
 
 @tree.command(name='config', description="Configs the movie bot.", guild=discord.Object(id=guild_id))
-async def config_command(interaction, stream_channel: discord.VoiceChannel = None, announcement_channel: discord.TextChannel = None, ping_role: discord.Role = None):
-    await config_commands.config(interaction, stream_channel, announcement_channel, ping_role)
+async def config_command(interaction, stream_channel: discord.VoiceChannel = None, announcement_channel: discord.TextChannel = None, ping_role: discord.Role = None, timezone: TimeZones = None):
+    await config_commands.config(interaction, stream_channel, announcement_channel, ping_role, timezone)
 
 @tree.command(name='create_test_event', description="Create a test event", guild=discord.Object(id=guild_id))
 async def create_test_event_command(interaction, name: str, description: str, start_time: str, end_time: str ):
