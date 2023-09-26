@@ -18,7 +18,7 @@ class DiscordEvents:
             'channel_id': channel_id,
             'privacy_level': 2,
         }
-        
+        print(start_time)
         if image_data:
             event_data['image'] = image_data
 
@@ -46,8 +46,8 @@ class DiscordEvents:
                 return await response.json()
 
     async def start_event(self, guild_id, event_id):
-        return await self.modify_event(guild_id, event_id, {'status': 2})  # 2 = ACTIVE
+        return await self.modify_event(guild_id, event_id, {'status': 2})
 
     async def end_event(self, guild_id, event_id):
-        return await self.modify_event(guild_id, event_id, {'status': 3})  # 3 = COMPLETED
+        return await self.modify_event(guild_id, event_id, {'status': 3})
     

@@ -2,26 +2,24 @@ from services.movie_scraper import MovieScraper
 from bot_core.discord_events import DiscordEvents
 from datetime import datetime, timedelta
 from utils.image_util import download_image, convert_image_format
+from bot_core.helpers import round_to_next_quarter_hour, utc_to_local, local_to_utc
 import base64
 
 class MovieNightService:
-    def __init__(self, movie_night_manager, movie_manager, movie_scraper: MovieScraper, movie_event_manager, token, guild_id, stream_channel):
+    def __init__(self, movie_night_manager, movie_manager, movie_scraper: MovieScraper, movie_event_manager, token, guild_id, stream_channel, server_timezone):
+        self.guild_id = guild_id
         self.movie_night_manager = movie_night_manager
-        self.movie_manager = movie_manager
         self.movie_event_manager = movie_event_manager
+        self.movie_manager = movie_manager
         self.movie_scraper = movie_scraper
         self.api_key = movie_scraper.api_key
-        self.guild_id = guild_id
         self.stream_channel = stream_channel
+        self.server_timezone = server_timezone
         self.discord_events = DiscordEvents(token)
-        
-    def round_to_next_quarter_hour(self, time):
-        minutes_to_next_quarter_hour = 15 - time.minute % 15
-        return time + timedelta(minutes=minutes_to_next_quarter_hour)
 
     async def add_movie_to_movie_night(self, movie_night_id, movie_url):
         movie_details = self.movie_scraper.get_movie_details_from_url(movie_url)
-        
+        print(f"time zone {self.server_timezone}")
         if not movie_details:
             return "Failed to get movie details."
         
@@ -32,24 +30,32 @@ class MovieNightService:
             movie_id = self.movie_manager.save_movie(movie_details)
         
         movie_night = self.movie_night_manager.find_movie_night_by_id(movie_night_id)
-        
+        print(f"movie_night_id{movie_night_id}")
         if not movie_night:
             return "Movie Night not found"
         
         last_movie_event = self.movie_event_manager.find_last_movie_event_by_movie_night_id(movie_night_id)
-        
+
         if last_movie_event:
             last_movie = self.movie_manager.find_movie_by_id(last_movie_event.movie_id)
             if last_movie:
-                last_movie_end_time = last_movie_event.start_time + timedelta(minutes=last_movie.runtime)
+                last_movie_end_time = last_movie_event.start_time + timedelta(minutes=last_movie.runtime)       
             else:
-                last_movie_end_time = movie_night.start_time
+                last_movie_end_time = movie_night.start_time  
+            print(f"last_movie_event.movie_id{last_movie_event.movie_id}")
+            print(f"last_movie_end_time{last_movie_end_time}")
         else:
             last_movie_end_time = movie_night.start_time
+            print(f"last_movie_end_time{last_movie_end_time}")
         
-        new_start_time = self.round_to_next_quarter_hour(last_movie_end_time)
+        local_last_movie_end_time = utc_to_local(last_movie_end_time, self.server_timezone)
+        print(f"local_last_movie_end_time {local_last_movie_end_time}")
+        rounded_local_time = round_to_next_quarter_hour(local_last_movie_end_time)
+        print(f"rounded_local_time {rounded_local_time}")
+        new_start_time = local_to_utc(rounded_local_time, self.server_timezone)
+        print(f"new_start_time {new_start_time}")
         new_start_time_iso = new_start_time.isoformat()
-
+        print(f"new_start_time_iso {new_start_time_iso}")
         new_movie_event_id = self.movie_event_manager.create_movie_event(movie_night_id, movie_id, new_start_time)
 
         movie_event = self.movie_event_manager.find_movie_event_by_id(new_movie_event_id)
@@ -58,10 +64,6 @@ class MovieNightService:
             movie = self.movie_manager.find_movie_by_id(movie_event.movie_id)
 
             if movie:
-                movie_duration = timedelta(minutes=movie.runtime)
-                end_time = new_start_time + movie_duration
-                end_time_iso = end_time.isoformat()
-
                 backdrop_url = movie_details.get('backdrop_url', None)
 
                 if backdrop_url:
