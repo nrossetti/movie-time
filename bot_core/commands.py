@@ -1,5 +1,6 @@
 from datetime import datetime
 import discord
+import re
 from managers.movie_night_manager import MovieNightManager
 from bot_core.discord_events import DiscordEvents
 from bot_core.discord_actions import create_header_embed, create_movie_embed
@@ -10,6 +11,13 @@ class MovieCommands:
     def __init__(self, movie_night_manager, movie_night_service):
         self.movie_night_manager = movie_night_manager
         self.movie_night_service = movie_night_service
+    
+    async def parse_movie_urls(self, movie_urls):
+        if isinstance(movie_urls, str):
+            return list(filter(None, re.split(r'[,\t\s]+', movie_urls)))
+        elif isinstance(movie_urls, list):
+            return movie_urls
+        return []
 
     async def create_movie_night(self, interaction, title: str, description: str, server_timezone: TimeZones.UTC, start_time: str = None):
         if server_timezone is None:
@@ -23,23 +31,31 @@ class MovieCommands:
             
         movie_night_id = self.movie_night_manager.create_movie_night(title, description, parsed_time) 
         await interaction.response.send_message(f"Movie Night created with ID: {movie_night_id}")
-    
-    async def add_movie(self, interaction, movie_url: str, movie_night_id: int = None):
+
+    async def add_movies(self, interaction, movie_urls: str or list, movie_night_id: int = None):
         await interaction.response.defer()
 
+        movie_urls = self.parse_movie_urls(movie_urls)
+        if not movie_urls:
+            await interaction.followup.send("No valid movie URLs provided.")
+            return
+        
+        await self.process_movie_urls(interaction, movie_urls, movie_night_id)
+    
+    async def process_movie_urls(self, interaction, movie_urls: str or list, movie_night_id: int = None):
         if movie_night_id is None:
             movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
             if movie_night_id is None:
                 await interaction.followup.send("No movie nights found.")
                 return
+            
+        for movie_url in movie_urls:
+            movie_event_id = await self.movie_night_service.add_movie_to_movie_night(movie_night_id, movie_url)
 
-        movie_event_id = await self.movie_night_service.add_movie_to_movie_night(movie_night_id, movie_url)
-
-        if movie_event_id:
-            await interaction.followup.send(f"Added Movie to Movie Night. Movie Event ID is: {movie_event_id}")
-        else:
-            await interaction.followup.send("Failed to add movie.")
-            return
+            if not movie_event_id:
+                await interaction.followup.send(f'Failed to add movie: "{movie_url}".')
+                continue
+            await interaction.followup.send(f'Added Movie "{movie_url}" to Movie Night. Movie Event ID is: {movie_event_id}')
 
     async def post_movie_night(self, interaction, movie_night_id: int = None): 
         await interaction.response.defer()
