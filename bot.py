@@ -48,10 +48,10 @@ async def create_movie_night_command(interaction, title: str, description: str, 
     except ValueError as e:
         await interaction.response.send_message(str(e))
 
-@tree.command(name='add_movie', description="Add a movie to a movie night", guild=discord.Object(id=guild_id))
-async def add_movie_command(interaction,  movie_url: str, movie_night_id: int = None):
+@tree.command(name='add_movies', description="Add movies to a movie night", guild=discord.Object(id=guild_id))
+async def add_movies_command(interaction,  movie_urls: str or list, movie_night_id: int = None):
     try:
-        await movie_commands.add_movie(interaction, movie_url, movie_night_id)
+        await movie_commands.add_movies(interaction, movie_urls, movie_night_id)
     except ValueError as e:
         await interaction.response.send_message(str(e))
 
