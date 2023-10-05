@@ -55,17 +55,6 @@ async def add_movies_command(interaction,  movie_urls: str or list, movie_night_
     except ValueError as e:
         await interaction.response.send_message(str(e))
 
-"""
-DEPRECATED in favor of "add_movies" command
-
-@tree.command(name='add_movie', description="Add a movie to a movie night", guild=discord.Object(id=guild_id))
-async def add_movie_command(interaction,  movie_url: str, movie_night_id: int = None):
-    try:
-        await movie_commands.add_movie(interaction, movie_url, movie_night_id)
-    except ValueError as e:
-        await interaction.response.send_message(str(e))
-"""
-
 @tree.command(name='post_movie_night', description="Post the movie night", guild=discord.Object(id=guild_id))
 async def post_movie_night_command(interaction, movie_night_id: int = None):
     try:

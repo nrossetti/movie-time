@@ -12,7 +12,7 @@ class MovieCommands:
         self.movie_night_manager = movie_night_manager
         self.movie_night_service = movie_night_service
     
-    async def parse_movie_urls(self, movie_urls):
+    def parse_movie_urls(self, movie_urls):
         if isinstance(movie_urls, str):
             return list(filter(None, re.split(r'[,\t\s]+', movie_urls)))
         elif isinstance(movie_urls, list):
