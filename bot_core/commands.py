@@ -5,12 +5,13 @@ from managers.movie_night_manager import MovieNightManager
 from bot_core.discord_events import DiscordEvents
 from bot_core.discord_actions import create_header_embed, create_movie_embed
 from bot_core.helpers import parse_start_time
-from bot_core.helpers  import TimeZones, local_to_utc
+from bot_core.helpers  import TimeZones, local_to_utc, datetime_to_unix, utc_to_local
 
 class MovieCommands:
     def __init__(self, movie_night_manager, movie_night_service):
         self.movie_night_manager = movie_night_manager
         self.movie_night_service = movie_night_service
+        self.server_timezone = TimeZones.UTC
     
     def parse_movie_urls(self, movie_urls):
         if isinstance(movie_urls, str):
@@ -22,7 +23,8 @@ class MovieCommands:
     async def create_movie_night(self, interaction, title: str, description: str, server_timezone: TimeZones.UTC, start_time: str = None):
         if server_timezone is None:
             server_timezone = 'UTC'
-
+        else:
+            self.server_timezone = server_timezone
         if start_time:
             parsed_time = parse_start_time(start_time)
             parsed_time = local_to_utc(parsed_time, server_timezone)
@@ -81,6 +83,40 @@ class MovieCommands:
             all_embeds.append(movie_embed)
 
         await interaction.followup.send(embeds=all_embeds)
+    
+    async def view_movie_night(self, interaction, movie_night_id: int = None):
+        await interaction.response.defer()
+        if movie_night_id is None:
+            movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
+            if movie_night_id is None:
+                await interaction.followup.send("No movie nights found.")
+                return
+
+        movie_night_details = self.movie_night_manager.get_movie_night_details(movie_night_id)
+
+        if not movie_night_details:
+            await interaction.followup.send("Movie Night not found.")
+            return
+
+        # Then do whatever you want with movie_night_details, like sending them back to the user
+        response_text = f"Movie Night #{movie_night_id}: {movie_night_details['title']}\n"
+        response_text += f"Description: {movie_night_details['description']}\n"
+        for event in movie_night_details['events']:
+            start_time = utc_to_local(event['start_time'],self.server_timezone)
+            start_time_unix = datetime_to_unix(start_time)
+            response_text += f"  - Event ID: {event['event_id']}\n - Name: {event['movie_name']}\n - Start Time: <t:{start_time_unix}:F>\n\n"
+
+        await interaction.followup.send(response_text)
+
+    async def delete_event(self, interaction, event_id: int):
+        await interaction.response.defer()
+
+        success = self.movie_night_manager.delete_movie_event(event_id)
+
+        if success:
+            await interaction.followup.send(f"Successfully deleted Movie Event with ID: {event_id}")
+        else:
+            await interaction.followup.send("Failed to delete movie event.")
 
 class ConfigCommands:
     def __init__(self, config_manager):

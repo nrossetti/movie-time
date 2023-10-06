@@ -42,20 +42,13 @@ class MovieNightService:
                 last_movie_end_time = last_movie_event.start_time + timedelta(minutes=last_movie.runtime)       
             else:
                 last_movie_end_time = movie_night.start_time  
-            print(f"last_movie_event.movie_id{last_movie_event.movie_id}")
-            print(f"last_movie_end_time{last_movie_end_time}")
         else:
             last_movie_end_time = movie_night.start_time
-            print(f"last_movie_end_time{last_movie_end_time}")
         
         local_last_movie_end_time = utc_to_local(last_movie_end_time, self.server_timezone)
-        print(f"local_last_movie_end_time {local_last_movie_end_time}")
         rounded_local_time = round_to_next_quarter_hour(local_last_movie_end_time)
-        print(f"rounded_local_time {rounded_local_time}")
         new_start_time = local_to_utc(rounded_local_time, self.server_timezone)
-        print(f"new_start_time {new_start_time}")
         new_start_time_iso = new_start_time.isoformat()
-        print(f"new_start_time_iso {new_start_time_iso}")
         new_movie_event_id = self.movie_event_manager.create_movie_event(movie_night_id, movie_id, new_start_time)
 
         movie_event = self.movie_event_manager.find_movie_event_by_id(new_movie_event_id)

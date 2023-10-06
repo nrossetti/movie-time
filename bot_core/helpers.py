@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import pytz
 
@@ -37,6 +37,10 @@ def utc_to_local(utc_time: datetime, local_timezone) -> datetime:
 
     local_time = utc_time.astimezone(local_tz)
     return local_time
+
+def datetime_to_unix(dt: datetime) -> int:
+    utc_time = dt.astimezone(pytz.utc)
+    return int(utc_time.timestamp())
 
 def round_to_next_quarter_hour(time):
     minutes_to_next_quarter_hour = 15 - time.minute % 15
