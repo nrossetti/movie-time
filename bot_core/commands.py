@@ -40,7 +40,7 @@ class MovieCommands:
         if movie_event_id is None:
             movie_event_id = self.movie_event_manager.find_last_movie_event()
                 
-        if movie_event_id i s None:
+        if movie_event_id is None:
             await interaction.response.send_message("No movie event found to remove.")
             return
             
@@ -156,49 +156,3 @@ class ConfigCommands:
 
         await interaction.response.defer()
         await interaction.followup.send("\n".join(response_messages))
-
-class EventTestCommands:
-    def __init__(self, discord_token):
-        self.discord_events = DiscordEvents(discord_token)
-
-    async def create_test_event(self, interaction, name: str, description: str, start_time: str, end_time: str):
-        guild_id = str(interaction.guild.id)
-        event_data = {
-            'name': name,
-            'description': description,
-            'scheduled_start_time': start_time,
-            'scheduled_end_time': end_time,
-            'entity_type': 3,  
-            'privacy_level': 2,
-            'entity_metadata': {
-                'location': 'Online'
-            }
-        }
-        created_event = await self.discord_events.create_event(guild_id, event_data)
-        await interaction.response.send_message(f"Event created: {created_event}")
-
-    async def delete_test_event(self, interaction, event_id: str):
-        guild_id = str(interaction.guild.id)
-        is_deleted = await self.discord_events.delete_event(guild_id, event_id)
-        await interaction.response.send_message(f"Event deleted: {is_deleted}")
-
-    async def modify_test_event(self, interaction, event_id: str, new_name: str):
-        guild_id = str(interaction.guild.id)
-        updated_data = {'name': new_name}
-        modified_event = await self.discord_events.modify_event(guild_id, event_id, updated_data)
-        await interaction.response.send_message(f"Event modified: {modified_event}")
-
-    async def list_test_events(self, interaction):
-        guild_id = str(interaction.guild.id)
-        all_events = await self.discord_events.list_events(guild_id)
-        await interaction.response.send_message(f"All events: {all_events}")
-
-    async def start_test_event(self, interaction, event_id: str):
-        guild_id = str(interaction.guild.id)
-        started_event = await self.discord_events.start_event(guild_id, event_id)
-        await interaction.response.send_message(f"Event started: {started_event}")
-
-    async def end_test_event(self, interaction, event_id: str):
-        guild_id = str(interaction.guild.id)
-        ended_event = await self.discord_events.end_event(guild_id, event_id)
-        await interaction.response.send_message(f"Event ended: {ended_event}")
