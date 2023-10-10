@@ -73,6 +73,13 @@ async def view_movie_night_command(interaction, movie_night_id: int = None):
     except ValueError as e:
         await interaction.response.send_message(str(e))
 
+@tree.command(name='edit_movie_night', description="Edit a movie night", guild=discord.Object(id=guild_id))
+async def edit_movie_night_command(interaction, movie_night_id: int = None, title: str = None, description: str = None):
+    try:
+        await movie_commands.edit_movie_night(interaction, movie_night_id, title, description )
+    except ValueError as e:
+        await interaction.response.send_message(str(e))
+
 @tree.command(name='delete_event', description="Delete a movie event", guild=discord.Object(id=guild_id))
 async def delete_event_command(interaction, event_id: int):
     try:

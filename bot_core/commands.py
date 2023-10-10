@@ -123,6 +123,28 @@ class MovieCommands:
             response_text += f"  - Event ID: {event['event_id']}\n - Name: {event['movie_name']}\n - Start Time: <t:{start_time_unix}:F>\n\n"
 
         await interaction.followup.send(response_text)
+        
+    async def edit_movie_night(self, interaction, movie_night_id: int = None, title: str = None, description: str = None):
+        if movie_night_id is None:
+            movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
+            if movie_night_id is None:
+                await interaction.followup.send("No movie nights found.")
+                return
+
+        if title or description is not None:
+            movie_night_id = self.movie_night_manager.update_movie_night(movie_night_id, title, description) 
+    
+        await interaction.response.send_message(f"Movie Night updated on ID: {movie_night_id}")
+
+    async def delete_event(self, interaction, event_id: int):
+        await interaction.response.defer()
+
+        success = self.movie_night_manager.delete_movie_event(event_id)
+
+        if success:
+            await interaction.followup.send(f"Successfully deleted Movie Event with ID: {event_id}")
+        else:
+            await interaction.followup.send("Failed to delete movie event.")
 
 class ConfigCommands:
     def __init__(self, config_manager):
