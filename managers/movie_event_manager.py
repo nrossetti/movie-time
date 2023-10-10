@@ -27,15 +27,6 @@ class MovieEventManager:
         self.db_session.commit()
         return movie_event.id
 
-    def delete_movie_event(self, movie_event_id):
-        movie_event = self.db_session.query(MovieEvent).filter_by(id=movie_event_id).first()
-        if not movie_event:
-            return "Movie Event not found"
-
-        self.db_session.delete(movie_event)
-        self.db_session.commit()
-        return "Deleted successfully"
-
     def list_all_movie_events(self):
         return self.db_session.query(MovieEvent).all()
 
@@ -48,3 +39,24 @@ class MovieEventManager:
             .order_by(desc(MovieEvent.start_time))\
             .first()
         return result
+    
+    def find_last_movie_event(self):
+        result = self.db_session.query(MovieEvent)\
+            .order_by(desc(MovieEvent.start_time))\
+            .first()
+        if result is not None:
+            return result.id
+        else:
+            return None
+   
+    def remove_movie_event(self, movie_event_id):
+        movie_event = self.db_session.query(MovieEvent).filter_by(id=movie_event_id).first()
+        if not movie_event:
+            return None, "Movie Event not found"
+        
+        discord_event_id = movie_event.discord_event_id
+
+        self.db_session.delete(movie_event)
+        self.db_session.commit()
+        
+        return discord_event_id, "Deleted successfully"

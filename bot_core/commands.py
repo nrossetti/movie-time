@@ -8,9 +8,11 @@ from bot_core.helpers import parse_start_time
 from bot_core.helpers  import TimeZones, local_to_utc, datetime_to_unix, utc_to_local
 
 class MovieCommands:
-    def __init__(self, movie_night_manager, movie_night_service):
+    def __init__(self, movie_night_manager, movie_night_service, movie_event_manager, discord_token):
         self.movie_night_manager = movie_night_manager
         self.movie_night_service = movie_night_service
+        self.movie_event_manager = movie_event_manager
+        self.discord_events = DiscordEvents(discord_token)
         self.server_timezone = TimeZones.UTC
     
     def parse_movie_urls(self, movie_urls):
@@ -33,6 +35,21 @@ class MovieCommands:
             
         movie_night_id = self.movie_night_manager.create_movie_night(title, description, parsed_time) 
         await interaction.response.send_message(f"Movie Night created with ID: {movie_night_id}")
+
+    async def remove_movie_event_command(self, interaction, movie_event_id=None):
+        if movie_event_id is None:
+            movie_event_id = self.movie_event_manager.find_last_movie_event()
+                
+        if movie_event_id i s None:
+            await interaction.response.send_message("No movie event found to remove.")
+            return
+            
+        discord_event_id, result_message = self.movie_event_manager.remove_movie_event(movie_event_id)
+            
+        if discord_event_id: 
+            await self.discord_events.delete_event(guild_id=interaction.guild.id,event_id=discord_event_id)
+            
+        await interaction.response.send_message(result_message)
 
     async def add_movies(self, interaction, movie_urls: str or list, movie_night_id: int = None):
         await interaction.response.defer()
@@ -98,7 +115,6 @@ class MovieCommands:
             await interaction.followup.send("Movie Night not found.")
             return
 
-        # Then do whatever you want with movie_night_details, like sending them back to the user
         response_text = f"Movie Night #{movie_night_id}: {movie_night_details['title']}\n"
         response_text += f"Description: {movie_night_details['description']}\n"
         for event in movie_night_details['events']:
@@ -107,16 +123,6 @@ class MovieCommands:
             response_text += f"  - Event ID: {event['event_id']}\n - Name: {event['movie_name']}\n - Start Time: <t:{start_time_unix}:F>\n\n"
 
         await interaction.followup.send(response_text)
-
-    async def delete_event(self, interaction, event_id: int):
-        await interaction.response.defer()
-
-        success = self.movie_night_manager.delete_movie_event(event_id)
-
-        if success:
-            await interaction.followup.send(f"Successfully deleted Movie Event with ID: {event_id}")
-        else:
-            await interaction.followup.send("Failed to delete movie event.")
 
 class ConfigCommands:
     def __init__(self, config_manager):

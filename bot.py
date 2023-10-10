@@ -30,7 +30,7 @@ stream_channel = config_manager.get_setting(guild_id, 'stream_channel')
 server_timezone_str = config_manager.get_setting(guild_id, 'timezone') or 'UTC'
 server_timezone = next((tz for tz in TimeZones if tz.value == server_timezone_str), None)
 movie_night_service = MovieNightService(movie_night_manager, MovieManager(db_session), movie_scraper, movie_event_manager, token, guild_id, stream_channel, server_timezone)
-movie_commands = MovieCommands(movie_night_manager, movie_night_service)
+movie_commands = MovieCommands(movie_night_manager, movie_night_service, movie_event_manager, token)
 config_commands = ConfigCommands(config_manager)
 
 event_test_commands = EventTestCommands(token)
@@ -55,6 +55,13 @@ async def add_movies_command(interaction,  movie_urls: str or list, movie_night_
     except ValueError as e:
         await interaction.response.send_message(str(e))
 
+@tree.command(name='remove_movie_event', description="Remove a movie event from a movie night", guild=discord.Object(id=guild_id))
+async def remove_movie_event_command(interaction, movie_event_id: int = None):
+    try:
+        await movie_commands.remove_movie_event_command(interaction, movie_event_id)
+    except ValueError as e:
+        await interaction.response.send_message(str(e))
+
 @tree.command(name='post_movie_night', description="Post the movie night", guild=discord.Object(id=guild_id))
 async def post_movie_night_command(interaction, movie_night_id: int = None):
     try:
@@ -71,7 +78,7 @@ async def view_movie_night_command(interaction, movie_night_id: int = None):
 @tree.command(name='delete_event', description="Delete a movie event", guild=discord.Object(id=guild_id))
 async def delete_event_command(interaction, event_id: int):
     try:
-        await movie_commands.delete_event(interaction, event_id)
+        await movie_commands.remove_movie_event_command(interaction, event_id)
     except ValueError as e:
         await interaction.response.send_message(str(e))
         
