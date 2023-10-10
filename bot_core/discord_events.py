@@ -18,7 +18,6 @@ class DiscordEvents:
             'channel_id': channel_id,
             'privacy_level': 2,
         }
-        print(start_time)
         if image_data:
             event_data['image'] = image_data
 

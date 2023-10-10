@@ -19,7 +19,7 @@ class MovieNightService:
 
     async def add_movie_to_movie_night(self, movie_night_id, movie_url):
         movie_details = self.movie_scraper.get_movie_details_from_url(movie_url)
-        print(f"time zone {self.server_timezone}")
+        
         if not movie_details:
             return "Failed to get movie details."
         
@@ -30,7 +30,7 @@ class MovieNightService:
             movie_id = self.movie_manager.save_movie(movie_details)
         
         movie_night = self.movie_night_manager.find_movie_night_by_id(movie_night_id)
-        print(f"movie_night_id{movie_night_id}")
+
         if not movie_night:
             return "Movie Night not found"
         
