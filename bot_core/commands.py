@@ -8,9 +8,11 @@ from bot_core.helpers import parse_start_time
 from bot_core.helpers  import TimeZones, local_to_utc, datetime_to_unix, utc_to_local
 
 class MovieCommands:
-    def __init__(self, movie_night_manager, movie_night_service):
+    def __init__(self, movie_night_manager, movie_night_service, movie_event_manager, discord_token):
         self.movie_night_manager = movie_night_manager
         self.movie_night_service = movie_night_service
+        self.movie_event_manager = movie_event_manager
+        self.discord_events = DiscordEvents(discord_token)
         self.server_timezone = TimeZones.UTC
     
     def parse_movie_urls(self, movie_urls):
@@ -33,6 +35,21 @@ class MovieCommands:
             
         movie_night_id = self.movie_night_manager.create_movie_night(title, description, parsed_time) 
         await interaction.response.send_message(f"Movie Night created with ID: {movie_night_id}")
+
+    async def remove_movie_event_command(self, interaction, movie_event_id=None):
+        if movie_event_id is None:
+            movie_event_id = self.movie_event_manager.find_last_movie_event()
+                
+        if movie_event_id is None:
+            await interaction.response.send_message("No movie event found to remove.")
+            return
+            
+        discord_event_id, result_message = self.movie_event_manager.remove_movie_event(movie_event_id)
+            
+        if discord_event_id: 
+            await self.discord_events.delete_event(guild_id=interaction.guild.id,event_id=discord_event_id)
+            
+        await interaction.response.send_message(result_message)
 
     async def add_movies(self, interaction, movie_urls: str or list, movie_night_id: int = None):
         await interaction.response.defer()
@@ -98,7 +115,6 @@ class MovieCommands:
             await interaction.followup.send("Movie Night not found.")
             return
 
-        # Then do whatever you want with movie_night_details, like sending them back to the user
         response_text = f"Movie Night #{movie_night_id}: {movie_night_details['title']}\n"
         response_text += f"Description: {movie_night_details['description']}\n"
         for event in movie_night_details['events']:
@@ -107,7 +123,7 @@ class MovieCommands:
             response_text += f"  - Event ID: {event['event_id']}\n - Name: {event['movie_name']}\n - Start Time: <t:{start_time_unix}:F>\n\n"
 
         await interaction.followup.send(response_text)
-
+        
     async def edit_movie_night(self, interaction, movie_night_id: int = None, title: str = None, description: str = None):
         if movie_night_id is None:
             movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
@@ -162,49 +178,3 @@ class ConfigCommands:
 
         await interaction.response.defer()
         await interaction.followup.send("\n".join(response_messages))
-
-class EventTestCommands:
-    def __init__(self, discord_token):
-        self.discord_events = DiscordEvents(discord_token)
-
-    async def create_test_event(self, interaction, name: str, description: str, start_time: str, end_time: str):
-        guild_id = str(interaction.guild.id)
-        event_data = {
-            'name': name,
-            'description': description,
-            'scheduled_start_time': start_time,
-            'scheduled_end_time': end_time,
-            'entity_type': 3,  
-            'privacy_level': 2,
-            'entity_metadata': {
-                'location': 'Online'
-            }
-        }
-        created_event = await self.discord_events.create_event(guild_id, event_data)
-        await interaction.response.send_message(f"Event created: {created_event}")
-
-    async def delete_test_event(self, interaction, event_id: str):
-        guild_id = str(interaction.guild.id)
-        is_deleted = await self.discord_events.delete_event(guild_id, event_id)
-        await interaction.response.send_message(f"Event deleted: {is_deleted}")
-
-    async def modify_test_event(self, interaction, event_id: str, new_name: str):
-        guild_id = str(interaction.guild.id)
-        updated_data = {'name': new_name}
-        modified_event = await self.discord_events.modify_event(guild_id, event_id, updated_data)
-        await interaction.response.send_message(f"Event modified: {modified_event}")
-
-    async def list_test_events(self, interaction):
-        guild_id = str(interaction.guild.id)
-        all_events = await self.discord_events.list_events(guild_id)
-        await interaction.response.send_message(f"All events: {all_events}")
-
-    async def start_test_event(self, interaction, event_id: str):
-        guild_id = str(interaction.guild.id)
-        started_event = await self.discord_events.start_event(guild_id, event_id)
-        await interaction.response.send_message(f"Event started: {started_event}")
-
-    async def end_test_event(self, interaction, event_id: str):
-        guild_id = str(interaction.guild.id)
-        ended_event = await self.discord_events.end_event(guild_id, event_id)
-        await interaction.response.send_message(f"Event ended: {ended_event}")

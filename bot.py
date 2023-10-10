@@ -8,7 +8,7 @@ from managers.movie_manager import MovieManager
 from managers.movie_event_manager import MovieEventManager
 from services.movie_night_service import MovieNightService
 from services.movie_scraper import MovieScraper
-from bot_core.commands import MovieCommands, ConfigCommands, EventTestCommands
+from bot_core.commands import MovieCommands, ConfigCommands
 from utils.config_manager import ConfigManager
 from bot_core.helpers import TimeZones
 
@@ -30,10 +30,8 @@ stream_channel = config_manager.get_setting(guild_id, 'stream_channel')
 server_timezone_str = config_manager.get_setting(guild_id, 'timezone') or 'UTC'
 server_timezone = next((tz for tz in TimeZones if tz.value == server_timezone_str), None)
 movie_night_service = MovieNightService(movie_night_manager, MovieManager(db_session), movie_scraper, movie_event_manager, token, guild_id, stream_channel, server_timezone)
-movie_commands = MovieCommands(movie_night_manager, movie_night_service)
+movie_commands = MovieCommands(movie_night_manager, movie_night_service, movie_event_manager, token)
 config_commands = ConfigCommands(config_manager)
-
-event_test_commands = EventTestCommands(token)
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
@@ -52,6 +50,13 @@ async def create_movie_night_command(interaction, title: str, description: str, 
 async def add_movies_command(interaction,  movie_urls: str or list, movie_night_id: int = None):
     try:
         await movie_commands.add_movies(interaction, movie_urls, movie_night_id)
+    except ValueError as e:
+        await interaction.response.send_message(str(e))
+
+@tree.command(name='remove_movie_event', description="Remove a movie event from a movie night", guild=discord.Object(id=guild_id))
+async def remove_movie_event_command(interaction, movie_event_id: int = None):
+    try:
+        await movie_commands.remove_movie_event_command(interaction, movie_event_id)
     except ValueError as e:
         await interaction.response.send_message(str(e))
 
@@ -78,37 +83,13 @@ async def edit_movie_night_command(interaction, movie_night_id: int = None, titl
 @tree.command(name='delete_event', description="Delete a movie event", guild=discord.Object(id=guild_id))
 async def delete_event_command(interaction, event_id: int):
     try:
-        await movie_commands.delete_event(interaction, event_id)
+        await movie_commands.remove_movie_event_command(interaction, event_id)
     except ValueError as e:
         await interaction.response.send_message(str(e))
         
 @tree.command(name='config', description="Configs the movie bot.", guild=discord.Object(id=guild_id))
 async def config_command(interaction, stream_channel: discord.VoiceChannel = None, announcement_channel: discord.TextChannel = None, ping_role: discord.Role = None, timezone: TimeZones = None):
     await config_commands.config(interaction, stream_channel, announcement_channel, ping_role, timezone)
-
-@tree.command(name='create_test_event', description="Create a test event", guild=discord.Object(id=guild_id))
-async def create_test_event_command(interaction, name: str, description: str, start_time: str, end_time: str ):
-    await event_test_commands.create_test_event(interaction, name, description, start_time, end_time)
-
-@tree.command(name='delete_test_event', description="Delete a test event", guild=discord.Object(id=guild_id))
-async def delete_test_event_command(interaction, event_id: str):
-    await event_test_commands.delete_test_event(interaction, event_id)
-
-@tree.command(name='modify_test_event', description="Modify a test event", guild=discord.Object(id=guild_id))
-async def modify_test_event_command(interaction, event_id: str, new_name: str):
-    await event_test_commands.modify_test_event(interaction, event_id, new_name)
-
-@tree.command(name='list_test_events', description="List all test events", guild=discord.Object(id=guild_id))
-async def list_test_events_command(interaction):
-    await event_test_commands.list_test_events(interaction)
-
-@tree.command(name='start_test_event', description="Start a test event", guild=discord.Object(id=guild_id))
-async def start_test_event_command(interaction, event_id: str):
-    await event_test_commands.start_test_event(interaction, event_id)
-
-@tree.command(name='end_test_event', description="End a test event", guild=discord.Object(id=guild_id))
-async def end_test_event_command(interaction, event_id: str):
-    await event_test_commands.end_test_event(interaction, event_id)
 
 @client.event
 async def on_ready():
