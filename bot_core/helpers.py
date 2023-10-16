@@ -44,7 +44,8 @@ def datetime_to_unix(dt: datetime) -> int:
 
 def round_to_next_quarter_hour(time):
     minutes_to_next_quarter_hour = 15 - time.minute % 15
-    return time + timedelta(minutes=minutes_to_next_quarter_hour)
+    rounded_time = time + timedelta(minutes=minutes_to_next_quarter_hour)
+    return rounded_time.replace(second=0, microsecond=0)
 
 def parse_start_time(time_string: str):
     formats = ['%H:%M', '%I %p', '%I%p', '%I:%M %p', '%I:%M%p']

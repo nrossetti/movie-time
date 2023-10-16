@@ -1,11 +1,3 @@
-from services.movie_scraper import MovieScraper
-from bot_core.discord_events import DiscordEvents
-from datetime import datetime, timedelta
-from utils.image_util import download_image, convert_image_format
-from bot_core.helpers import round_to_next_quarter_hour, utc_to_local, local_to_utc
-from sqlalchemy.exc import SQLAlchemyError
-import base64
-
 class MovieNightService:
     def __init__(self, movie_night_manager, movie_manager, movie_scraper: MovieScraper, movie_event_manager, token, guild_id, stream_channel, server_timezone):
         self.guild_id = guild_id
@@ -21,7 +13,6 @@ class MovieNightService:
     async def add_movie_to_movie_night(self, movie_night_id, movie_url):
         try:
             self.movie_event_manager.db_session.begin_nested()
-
             movie_details = self.movie_scraper.get_movie_details_from_url(movie_url)
             if not movie_details:
                 return "Failed to get movie details."
@@ -49,9 +40,15 @@ class MovieNightService:
             local_last_movie_end_time = utc_to_local(last_movie_end_time, self.server_timezone)
             rounded_local_time = round_to_next_quarter_hour(local_last_movie_end_time)
             new_start_time = local_to_utc(rounded_local_time, self.server_timezone)
+
+            current_time = datetime.now(utc)
+            if new_start_time < current_time:
+                rounded_current_time = round_to_next_quarter_hour(current_time)
+                new_start_time = rounded_current_time
+
             new_start_time_iso = new_start_time.isoformat()
             new_movie_event_id = self.movie_event_manager.create_movie_event(movie_night_id, movie_id, new_start_time)
-
+            
             movie_event = self.movie_event_manager.find_movie_event_by_id(new_movie_event_id)
             if movie_event:
                 movie = self.movie_manager.find_movie_by_id(movie_event.movie_id)
