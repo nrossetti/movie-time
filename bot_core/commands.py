@@ -4,7 +4,7 @@ from managers.movie_night_manager import MovieNightManager
 from bot_core.discord_events import DiscordEvents
 from bot_core.discord_actions import create_header_embed, create_movie_embed
 from bot_core.helpers import parse_start_time
-from bot_core.helpers  import TimeZones, local_to_utc
+from bot_core.helpers  import TimeZones, local_to_utc, round_to_next_quarter_hour
 
 class MovieCommands:
     def __init__(self, movie_night_manager, movie_night_service):
@@ -21,7 +21,8 @@ class MovieCommands:
         else:
             parsed_time = datetime.utcnow()
             
-        movie_night_id = self.movie_night_manager.create_movie_night(title, description, parsed_time) 
+        rounded_time = round_to_next_quarter_hour(parsed_time)
+        movie_night_id = self.movie_night_manager.create_movie_night(title, description, rounded_time) 
         await interaction.response.send_message(f"Movie Night created with ID: {movie_night_id}")
     
     async def add_movie(self, interaction, movie_url: str, movie_night_id: int = None):

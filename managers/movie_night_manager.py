@@ -55,5 +55,4 @@ class MovieNightManager:
             else:
                 raise ValueError(f"No Movie Night found with ID: {movie_night_id}")
         except Exception as e:
-            print(f"An error occurred: {e}")
             return None

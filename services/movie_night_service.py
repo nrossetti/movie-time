@@ -1,6 +1,7 @@
 from services.movie_scraper import MovieScraper
 from bot_core.discord_events import DiscordEvents
 from datetime import datetime, timedelta
+from pytz import utc
 from utils.image_util import download_image, convert_image_format
 from bot_core.helpers import round_to_next_quarter_hour, utc_to_local, local_to_utc
 import base64
@@ -19,7 +20,6 @@ class MovieNightService:
 
     async def add_movie_to_movie_night(self, movie_night_id, movie_url):
         movie_details = self.movie_scraper.get_movie_details_from_url(movie_url)
-        print(f"time zone {self.server_timezone}")
         if not movie_details:
             return "Failed to get movie details."
         
@@ -30,7 +30,6 @@ class MovieNightService:
             movie_id = self.movie_manager.save_movie(movie_details)
         
         movie_night = self.movie_night_manager.find_movie_night_by_id(movie_night_id)
-        print(f"movie_night_id{movie_night_id}")
         if not movie_night:
             return "Movie Night not found"
         
@@ -42,20 +41,20 @@ class MovieNightService:
                 last_movie_end_time = last_movie_event.start_time + timedelta(minutes=last_movie.runtime)       
             else:
                 last_movie_end_time = movie_night.start_time  
-            print(f"last_movie_event.movie_id{last_movie_event.movie_id}")
-            print(f"last_movie_end_time{last_movie_end_time}")
         else:
-            last_movie_end_time = movie_night.start_time
-            print(f"last_movie_end_time{last_movie_end_time}")
-        
+            last_movie_end_time = movie_night.start_time        
+
         local_last_movie_end_time = utc_to_local(last_movie_end_time, self.server_timezone)
-        print(f"local_last_movie_end_time {local_last_movie_end_time}")
         rounded_local_time = round_to_next_quarter_hour(local_last_movie_end_time)
-        print(f"rounded_local_time {rounded_local_time}")
         new_start_time = local_to_utc(rounded_local_time, self.server_timezone)
-        print(f"new_start_time {new_start_time}")
+        
+        current_time = datetime.now(utc)
+
+        if new_start_time < current_time:
+            rounded_current_time = round_to_next_quarter_hour(current_time)
+            new_start_time = rounded_current_time
+
         new_start_time_iso = new_start_time.isoformat()
-        print(f"new_start_time_iso {new_start_time_iso}")
         new_movie_event_id = self.movie_event_manager.create_movie_event(movie_night_id, movie_id, new_start_time)
 
         movie_event = self.movie_event_manager.find_movie_event_by_id(new_movie_event_id)
