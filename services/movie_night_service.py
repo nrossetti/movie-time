@@ -72,11 +72,14 @@ class MovieNightService:
                             image_data = None
                     else:
                         image_data = None
-
+                    if movie.year:
+                        event_title = f"{movie.name} ({movie.year})"
+                    else:
+                        event_title = movie.name
                     discord_event = await self.discord_events.create_event(
                         self.guild_id,
                         self.stream_channel,
-                        movie.name,
+                        event_title,
                         movie.overview,
                         new_start_time_iso,
                         image_data=image_data  
