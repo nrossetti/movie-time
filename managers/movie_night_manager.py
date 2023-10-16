@@ -55,4 +55,20 @@ class MovieNightManager:
             else:
                 raise ValueError(f"No Movie Night found with ID: {movie_night_id}")
         except Exception as e:
+            print(f"An error occurred: {e}")
             return None
+    
+    def get_movie_night_details(self, movie_night_id):
+        movie_night = self.find_movie_night_by_id(movie_night_id)
+        if not movie_night:
+            return "Movie Night not found."
+        
+        details = {
+            "title": movie_night.title, 
+            "description": movie_night.description,
+            "events": [
+                {"event_id": event.id, "movie_name": event.movie.name, "start_time": event.start_time}
+                for event in movie_night.events
+            ]
+        }
+        return details
