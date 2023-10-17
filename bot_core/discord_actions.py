@@ -32,9 +32,8 @@ def create_movie_embed(movie_event, index, total_movies):
     director = movie.director.capitalize()
     embed = Embed()
     embed.set_author(name=f"{position} {start_time_string}")
-    embed.title = movie_title + "\u200B" * index 
-    embed.url = movie.url + "\u200B" * index 
-
+    embed.title = movie_title 
+    embed.url = movie.url + f"?{index}"
     if movie.image_url:
         embed.set_thumbnail(url=movie.image_url)
 
