@@ -65,7 +65,6 @@ class MovieCommands:
         if not movie_urls:
             await interaction.followup.send("No valid movie URLs provided.")
             return
-        
         await self.process_movie_urls(interaction, movie_urls, movie_night_id)
     
     async def process_movie_urls(self, interaction, movie_urls: str or list, movie_night_id: int = None):
@@ -74,14 +73,31 @@ class MovieCommands:
             if movie_night_id is None:
                 await interaction.followup.send("No movie nights found.")
                 return
-            
-        for movie_url in movie_urls:
-            movie_event_id = await self.movie_night_service.add_movie_to_movie_night(movie_night_id, movie_url)
 
-            if not movie_event_id:
-                await interaction.followup.send(f'Failed to add movie: "{movie_url}".')
-                continue
-            await interaction.followup.send(f'Added Movie "{movie_url}" to Movie Night. Movie Event ID is: {movie_event_id}')
+        added_movies = []
+        discord_event_ids = []
+
+        try:
+            for movie_url in movie_urls:
+                result = await self.movie_night_service.add_movie_to_movie_night(movie_night_id, movie_url)
+                if not result:
+                    raise Exception(f'Failed to add movie: "{movie_url}".')
+
+                movie_event_id, discord_event_id = result
+                added_movies.append(movie_event_id)
+                if discord_event_id:
+                    discord_event_ids.append(discord_event_id)
+
+                await interaction.followup.send(f'Added Movie "{movie_url}" to Movie Night. Movie Event ID is: {movie_event_id}')
+                    
+        except Exception as e:
+            for movie_id in added_movies:
+                self.movie_event_manager.remove_movie_event(movie_id)
+
+            for event_id in discord_event_ids:
+                await self.discord_events.delete_event(guild_id=interaction.guild.id, event_id=event_id)
+
+            await interaction.followup.send(f"An error occurred: {e}. All added movies have been rolled back.")
 
     async def post_movie_night(self, interaction, movie_night_id: int = None): 
         await interaction.response.defer()
