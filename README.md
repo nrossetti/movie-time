@@ -37,8 +37,8 @@ Example Configuration:
     "guild_id": guild_id
 }
 ```
-
 ### Commands
+**\*\* This outdated - See commands.py or bot.py to see current commands**
 
 #### 1. `/config`
 

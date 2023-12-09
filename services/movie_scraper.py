@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from tmdbv3api import TMDb, Movie, Search
+import re
 
 class MovieScraper:
     def __init__(self, api_key):
@@ -8,6 +9,22 @@ class MovieScraper:
         self.tmdb = TMDb()
         self.tmdb.api_key = self.api_key
         self.movie = Movie()
+    
+    def normalize_letterboxd_url(self, url: str) -> str:
+        if "boxd.it" in url:
+            try:
+                response = requests.get(url, allow_redirects=True)
+                if response.status_code == 200:
+                    return response.url  # This should be the final URL after following the redirect
+                else:
+                    print(f"Failed to resolve URL: {url}. Status code: {response.status_code}")
+                    return None
+            except Exception as e:
+                print(f"An error occurred while resolving URL: {e}")
+                return None
+        else:
+            return url  # If it's already a standard URL, return it as is
+        
     def extract_movie_details_from_letterboxd(self, url):
         try:
             response = requests.get(url)
@@ -62,10 +79,14 @@ class MovieScraper:
             return None
 
     def get_movie_details_from_url(self, url):
-        if "letterboxd.com" in url:
-            title, year = self.extract_movie_details_from_letterboxd(url)
+        normalized_url = self.normalize_letterboxd_url(url)
+        if normalized_url and "letterboxd.com" in normalized_url:
+            title, year = self.extract_movie_details_from_letterboxd(normalized_url)
             if title and year:
-                return self.get_movie_details_from_tmdb_by_title_and_year(title, year)
+                details = self.get_movie_details_from_tmdb_by_title_and_year(title, year)
+                if details:
+                    details['url'] = normalized_url 
+                return details
         else:
             return None
 

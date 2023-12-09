@@ -1,0 +1,27 @@
+aiohttp==3.8.5
+aiosignal==1.3.1      
+async-timeout==4.0.2  
+attrs==23.1.0
+beautifulsoup4==4.12.2
+certifi==2023.7.22    
+charset-normalizer==3.2.0
+configparser==6.0.0
+discord-py-interactions==5.9.2
+discord-typings==0.6.0
+discord-ui==5.1.6
+discord.py @ git+https://github.com/Rapptz/discord.py@5126323640871f54d0f8508b8f9ed159686cfca1
+emoji==2.7.0
+frozenlist==1.4.0
+greenlet==2.0.2
+idna==3.4
+multidict==6.0.4
+Pillow==10.0.1
+pytz==2023.3
+requests==2.31.0
+soupsieve==2.4.1
+SQLAlchemy==2.0.20
+tmdbv3api==1.7.7
+tomli==2.0.1
+typing_extensions==4.7.1
+urllib3==2.0.4
+yarl==1.9.2

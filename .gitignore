@@ -1,6 +1,7 @@
 *.ini
 __pycache__
-.venvls
+.venv
 /storage
 secrets.json
-movie_time.db
+*.db
+/tests
