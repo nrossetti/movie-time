@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 class MovieEvent:
     def __init__(self, movie, start_time):
         self.movie = movie  

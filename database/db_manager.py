@@ -16,7 +16,12 @@ class DBManager:
 
     def add_movie_event(self, movie_night_id, movie_id, start_time, discord_event_id=None):
         session = self.Session()
-        new_movie_event = MovieEvent(movie_night_id=movie_night_id, movie_id=movie_id, start_time=start_time, discord_event_id=discord_event_id)
+        new_movie_event = MovieEvent(
+            movie_night_id=movie_night_id,
+            movie_id=movie_id,
+            start_time=start_time,  # This is now a UNIX timestamp
+            discord_event_id=discord_event_id
+            )
         session.add(new_movie_event)
         session.commit()
         session.close()
