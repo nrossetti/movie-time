@@ -4,8 +4,9 @@ import re
 from managers.movie_night_manager import MovieNightManager
 from bot_core.discord_events import DiscordEvents
 from bot_core.discord_actions import create_header_embed, create_movie_embed
-from bot_core.helpers  import TimeZones, parse_start_time, local_to_utc_timestamp, utc_to_local_timestamp, round_to_next_quarter_hour_timestamp
+from bot_core.helpers import TimeZones, parse_date, parse_start_time, utc_to_local_timestamp, round_to_next_quarter_hour_timestamp
 import pytz 
+
 class MovieCommands:
     def __init__(self, movie_night_manager, movie_night_service, movie_event_manager, discord_token):
         self.movie_night_manager = movie_night_manager
@@ -21,15 +22,22 @@ class MovieCommands:
             return movie_urls
         return []
 
-    async def create_movie_night(self, interaction, title: str, description: str, server_timezone_enum: TimeZones, start_time: str = None):
+    async def create_movie_night(self, interaction, title: str, description: str, server_timezone_enum: TimeZones, start_time: str = None, start_date: str = None):
         server_timezone = pytz.timezone(server_timezone_enum.value)
+        current_local_datetime = datetime.now(tz=server_timezone)
+        parsed_date = parse_date(start_date) if start_date else current_local_datetime.date()
+
+        if parsed_date < current_local_datetime.date():
+            await interaction.response.send_message("The specified date must be in the future.")
+            return
+        if start_date and not start_time:
+            await interaction.response.send_message("A start time must be specified for future dates.")
+            return
         
         if start_time:
-            parsed_time_unix = parse_start_time(start_time, server_timezone_enum)
+            parsed_time_unix = parse_start_time(start_time, server_timezone_enum, date_str=start_date)
         else:
-            current_local_time = datetime.now(server_timezone)
-            current_utc_time = current_local_time.astimezone(pytz.utc)
-            parsed_time_unix = int(current_utc_time.timestamp())
+            parsed_time_unix = int(current_local_datetime.timestamp())
 
         rounded_time_unix = round_to_next_quarter_hour_timestamp(parsed_time_unix)
         movie_night_id = self.movie_night_manager.create_movie_night(title, description, rounded_time_unix)

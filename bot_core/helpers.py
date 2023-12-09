@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta, timezone
-import pytz
+from datetime import datetime, timedelta
 from enum import Enum
+import pytz, re
 class TimeZones(Enum):
     UTC = 'UTC'
     EST = 'US/Eastern'
@@ -26,11 +26,11 @@ def utc_to_local_timestamp(utc_timestamp: int, local_timezone) -> int:
     return int(local_time.timestamp())
 
 def round_to_next_quarter_hour_timestamp(timestamp: int) -> int:
-    if not isinstance(timestamp, int):
-        raise ValueError("Timestamp must be an integer")
     """
     Rounds a UNIX timestamp to the next quarter-hour mark.
     """
+    if not isinstance(timestamp, int):
+        raise ValueError("Timestamp must be an integer")
     time = datetime.fromtimestamp(timestamp, tz=pytz.utc)
     if time.minute % 15 == 0:
         # If the time is already at a quarter-hour mark, don't round it
@@ -40,22 +40,43 @@ def round_to_next_quarter_hour_timestamp(timestamp: int) -> int:
     rounded_time = rounded_time.replace(second=0, microsecond=0)
     return int(rounded_time.timestamp())
 
-def parse_start_time(time_string: str, timezone_enum: TimeZones) -> int:
+def parse_start_time(time_string: str, timezone_enum: TimeZones, date_str=None):
+    """
+    parse start time into a unix timestamp
+    """
     local_tz = pytz.timezone(timezone_enum.value)
-    today = datetime.now(tz=local_tz).date()  # Get today's date in the local timezone
-
-    print("Today's Date in Local Timezone:", today)  # Debugging
+    if date_str:
+        try:
+            date = parse_date(date_str)
+        except ValueError as e:
+            raise ValueError(f"Invalid date format: {e}")
+    else:
+        date = datetime.now(tz=local_tz).date()
 
     for fmt in ['%H:%M', '%I %p', '%I%p', '%I:%M %p', '%I:%M%p']:
         try:
             parsed_time = datetime.strptime(time_string, fmt)
-            local_datetime = local_tz.localize(datetime.combine(today, parsed_time.time()), is_dst=None)
-            print("Local Datetime:", local_datetime)  # Debugging
-
+            local_datetime = local_tz.localize(datetime.combine(date, parsed_time.time()))
             utc_datetime = local_datetime.astimezone(pytz.utc)
-            print("UTC Datetime:", utc_datetime)  # Debugging
-
             return int(utc_datetime.timestamp())
         except ValueError:
             continue
     raise ValueError(f"Time {time_string} is not in the expected format")
+
+
+def parse_date(date_str):
+    """
+    parse date string
+    """
+    current_year = datetime.now().year
+    match = re.match(r"(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?", date_str)
+    if match:
+        month, day, year = match.groups()
+        if year:
+            year = int(year)
+            if year < 100:
+                year += 2000
+        else:
+            year = current_year
+        return datetime(year, int(month), int(day)).date()
+    raise ValueError("Invalid date format")
