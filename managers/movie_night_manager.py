@@ -1,12 +1,11 @@
 from database.db_models import MovieNight
 from sqlalchemy.orm import Session
-from datetime import datetime
 
 class MovieNightManager:
     def __init__(self, db_session: Session):
         self.db_session = db_session
 
-    def create_movie_night(self, title, description, start_time: datetime = None):
+    def create_movie_night(self, title, description, start_time = None):
         new_movie_night = MovieNight(title=title, description=description, start_time=start_time)
         self.db_session.add(new_movie_night)
         self.db_session.commit()

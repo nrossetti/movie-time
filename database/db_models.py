@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -10,7 +10,7 @@ class MovieNight(Base):
     id = Column(Integer, primary_key=True)
     title = Column(String)
     description = Column(String)
-    start_time = Column(DateTime)
+    start_time = Column(Integer)
     current_movie_index = Column(Integer, default=0) 
     status = Column(Integer, default=0)  #(0=Not Started, 1=Started, 2=Finished)
 
@@ -22,7 +22,7 @@ class MovieEvent(Base):
     id = Column(Integer, primary_key=True)
     movie_night_id = Column(Integer, ForeignKey('movie_nights.id'))
     movie_id = Column(Integer, ForeignKey('movies.id'))
-    start_time = Column(DateTime)
+    start_time = Column(Integer)
     discord_event_id = Column(String)
 
     movie_night = relationship("MovieNight", back_populates="events")

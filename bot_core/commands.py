@@ -4,9 +4,8 @@ import re
 from managers.movie_night_manager import MovieNightManager
 from bot_core.discord_events import DiscordEvents
 from bot_core.discord_actions import create_header_embed, create_movie_embed
-from bot_core.helpers import parse_start_time
-from bot_core.helpers  import TimeZones, local_to_utc, datetime_to_unix, utc_to_local, round_to_next_quarter_hour
-
+from bot_core.helpers  import TimeZones, parse_start_time, local_to_utc_timestamp, utc_to_local_timestamp, round_to_next_quarter_hour_timestamp
+import pytz 
 class MovieCommands:
     def __init__(self, movie_night_manager, movie_night_service, movie_event_manager, discord_token):
         self.movie_night_manager = movie_night_manager
@@ -22,19 +21,18 @@ class MovieCommands:
             return movie_urls
         return []
 
-    async def create_movie_night(self, interaction, title: str, description: str, server_timezone: TimeZones.UTC, start_time: str = None):
-        if server_timezone is None:
-            server_timezone = 'UTC'
-        else:
-            self.server_timezone = server_timezone
+    async def create_movie_night(self, interaction, title: str, description: str, server_timezone_enum: TimeZones, start_time: str = None):
+        server_timezone = pytz.timezone(server_timezone_enum.value)
+        
         if start_time:
-            parsed_time = parse_start_time(start_time)
-            parsed_time = local_to_utc(parsed_time, server_timezone)
+            parsed_time_unix = parse_start_time(start_time, server_timezone_enum)
         else:
-            parsed_time = datetime.utcnow()
-            
-        rounded_time = round_to_next_quarter_hour(parsed_time)
-        movie_night_id = self.movie_night_manager.create_movie_night(title, description, rounded_time) 
+            current_local_time = datetime.now(server_timezone)
+            current_utc_time = current_local_time.astimezone(pytz.utc)
+            parsed_time_unix = int(current_utc_time.timestamp())
+
+        rounded_time_unix = round_to_next_quarter_hour_timestamp(parsed_time_unix)
+        movie_night_id = self.movie_night_manager.create_movie_night(title, description, rounded_time_unix)
         await interaction.response.send_message(f"Movie Night created with ID: {movie_night_id}")
 
     async def remove_movie_event_command(self, interaction, movie_event_id=None):
@@ -97,7 +95,7 @@ class MovieCommands:
 
         total_movies = len(movie_night.events)
         for index, movie_event in enumerate(movie_night.events):
-            movie_embed = create_movie_embed(movie_event, index, total_movies)
+            movie_embed = create_movie_embed(movie_event, index, total_movies) 
             all_embeds.append(movie_embed)
 
         await interaction.followup.send(embeds=all_embeds)
@@ -119,10 +117,8 @@ class MovieCommands:
         response_text = f"Movie Night #{movie_night_id}: {movie_night_details['title']}\n"
         response_text += f"Description: {movie_night_details['description']}\n"
         for event in movie_night_details['events']:
-            start_time = utc_to_local(event['start_time'],self.server_timezone)
-            start_time_unix = datetime_to_unix(start_time)
-            response_text += f"  - Event ID: {event['event_id']}\n - Name: {event['movie_name']}\n - Start Time: <t:{start_time_unix}:F>\n\n"
-
+            start_time = utc_to_local_timestamp(event['start_time'], self.server_timezone)  # Convert timestamp to local time
+            response_text += f"  - Event ID: {event['event_id']}\n - Name: {event['movie_name']}\n - Start Time: <t:{start_time}:F>\n\n"
         await interaction.followup.send(response_text)
         
     async def edit_movie_night(self, interaction, movie_night_id: int = None, title: str = None, description: str = None):
