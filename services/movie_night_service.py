@@ -24,7 +24,8 @@ class MovieNightService:
             self.movie_event_manager.db_session.begin_nested()
             movie_details = self.movie_scraper.get_movie_details_from_url(movie_url)
             if not movie_details:
-                return "Failed to get movie details."
+                self.movie_event_manager.db_session.rollback()
+                return None
 
             existing_movie = self.movie_manager.find_movie_by_name_and_year(movie_details['name'], movie_details['year'])
             if existing_movie:
@@ -78,7 +79,7 @@ class MovieNightService:
                 if discord_event and 'id' in discord_event:
                     movie_event.discord_event_id = discord_event['id']
                     self.movie_event_manager.db_session.commit()
-                    return new_movie_event_id
+                    return (new_movie_event_id, discord_event['id'])
                 else:
                     print(f"Failed to create Discord event: {discord_event}")
                     self.movie_event_manager.db_session.rollback()
