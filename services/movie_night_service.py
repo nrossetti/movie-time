@@ -3,8 +3,9 @@ from bot_core.discord_events import DiscordEvents
 from datetime import datetime, timedelta
 from pytz import utc
 from utils.image_util import download_image, convert_image_format
-from bot_core.helpers import round_to_next_quarter_hour, utc_to_local, local_to_utc
+from bot_core.helpers import round_to_next_quarter_hour_timestamp, utc_to_local_timestamp, local_to_utc_timestamp
 import base64
+import time
 
 class MovieNightService:
     def __init__(self, movie_night_manager, movie_manager, movie_scraper: MovieScraper, movie_event_manager, token, guild_id, stream_channel, server_timezone):
@@ -23,7 +24,8 @@ class MovieNightService:
             self.movie_event_manager.db_session.begin_nested()
             movie_details = self.movie_scraper.get_movie_details_from_url(movie_url)
             if not movie_details:
-                return "Failed to get movie details."
+                self.movie_event_manager.db_session.rollback()
+                return None
 
             existing_movie = self.movie_manager.find_movie_by_name_and_year(movie_details['name'], movie_details['year'])
             if existing_movie:
@@ -36,26 +38,16 @@ class MovieNightService:
                 return "Movie Night not found"
 
             last_movie_event = self.movie_event_manager.find_last_movie_event_by_movie_night_id(movie_night_id)
-            if last_movie_event:
-                last_movie = self.movie_manager.find_movie_by_id(last_movie_event.movie_id)
-                if last_movie:
-                    last_movie_end_time = last_movie_event.start_time + timedelta(minutes=last_movie.runtime)
-                else:
-                    last_movie_end_time = movie_night.start_time
+            if last_movie_event and last_movie_event.movie:
+                runtime_seconds = last_movie_event.movie.runtime * 60
+                last_movie_end_time = last_movie_event.start_time + runtime_seconds
             else:
                 last_movie_end_time = movie_night.start_time
+            new_start_time_unix = max(int(time.time()), last_movie_end_time)
+            rounded_time_unix = round_to_next_quarter_hour_timestamp(new_start_time_unix)
 
-            local_last_movie_end_time = utc_to_local(last_movie_end_time, self.server_timezone)
-            rounded_local_time = round_to_next_quarter_hour(local_last_movie_end_time)
-            new_start_time = local_to_utc(rounded_local_time, self.server_timezone)
-
-            current_time = datetime.now(utc)
-            if new_start_time < current_time:
-                rounded_current_time = round_to_next_quarter_hour(current_time)
-                new_start_time = rounded_current_time
-
-            new_start_time_iso = new_start_time.isoformat()
-            new_movie_event_id = self.movie_event_manager.create_movie_event(movie_night_id, movie_id, new_start_time)
+            new_start_time_iso = datetime.utcfromtimestamp(rounded_time_unix).isoformat()
+            new_movie_event_id = self.movie_event_manager.create_movie_event(movie_night_id, movie_id, rounded_time_unix)
             
             movie_event = self.movie_event_manager.find_movie_event_by_id(new_movie_event_id)
             if movie_event:
@@ -87,7 +79,7 @@ class MovieNightService:
                 if discord_event and 'id' in discord_event:
                     movie_event.discord_event_id = discord_event['id']
                     self.movie_event_manager.db_session.commit()
-                    return new_movie_event_id
+                    return (new_movie_event_id, discord_event['id'])
                 else:
                     print(f"Failed to create Discord event: {discord_event}")
                     self.movie_event_manager.db_session.rollback()

@@ -4,8 +4,8 @@ import re
 from managers.movie_night_manager import MovieNightManager
 from bot_core.discord_events import DiscordEvents
 from bot_core.discord_actions import create_header_embed, create_movie_embed
-from bot_core.helpers import parse_start_time
-from bot_core.helpers  import TimeZones, local_to_utc, datetime_to_unix, utc_to_local, round_to_next_quarter_hour
+from bot_core.helpers import TimeZones, parse_date, parse_start_time, utc_to_local_timestamp, round_to_next_quarter_hour_timestamp
+import pytz 
 
 class MovieCommands:
     def __init__(self, movie_night_manager, movie_night_service, movie_event_manager, discord_token):
@@ -22,19 +22,25 @@ class MovieCommands:
             return movie_urls
         return []
 
-    async def create_movie_night(self, interaction, title: str, description: str, server_timezone: TimeZones.UTC, start_time: str = None):
-        if server_timezone is None:
-            server_timezone = 'UTC'
-        else:
-            self.server_timezone = server_timezone
+    async def create_movie_night(self, interaction, title: str, description: str, server_timezone_enum: TimeZones, start_time: str = None, start_date: str = None):
+        server_timezone = pytz.timezone(server_timezone_enum.value)
+        current_local_datetime = datetime.now(tz=server_timezone)
+        parsed_date = parse_date(start_date) if start_date else current_local_datetime.date()
+
+        if parsed_date < current_local_datetime.date():
+            await interaction.response.send_message("The specified date must be in the future.")
+            return
+        if start_date and not start_time:
+            await interaction.response.send_message("A start time must be specified for future dates.")
+            return
+        
         if start_time:
-            parsed_time = parse_start_time(start_time)
-            parsed_time = local_to_utc(parsed_time, server_timezone)
+            parsed_time_unix = parse_start_time(start_time, server_timezone_enum, date_str=start_date)
         else:
-            parsed_time = datetime.utcnow()
-            
-        rounded_time = round_to_next_quarter_hour(parsed_time)
-        movie_night_id = self.movie_night_manager.create_movie_night(title, description, rounded_time) 
+            parsed_time_unix = int(current_local_datetime.timestamp())
+
+        rounded_time_unix = round_to_next_quarter_hour_timestamp(parsed_time_unix)
+        movie_night_id = self.movie_night_manager.create_movie_night(title, description, rounded_time_unix)
         await interaction.response.send_message(f"Movie Night created with ID: {movie_night_id}")
 
     async def remove_movie_event_command(self, interaction, movie_event_id=None):
@@ -59,7 +65,6 @@ class MovieCommands:
         if not movie_urls:
             await interaction.followup.send("No valid movie URLs provided.")
             return
-        
         await self.process_movie_urls(interaction, movie_urls, movie_night_id)
     
     async def process_movie_urls(self, interaction, movie_urls: str or list, movie_night_id: int = None):
@@ -68,14 +73,31 @@ class MovieCommands:
             if movie_night_id is None:
                 await interaction.followup.send("No movie nights found.")
                 return
-            
-        for movie_url in movie_urls:
-            movie_event_id = await self.movie_night_service.add_movie_to_movie_night(movie_night_id, movie_url)
 
-            if not movie_event_id:
-                await interaction.followup.send(f'Failed to add movie: "{movie_url}".')
-                continue
-            await interaction.followup.send(f'Added Movie "{movie_url}" to Movie Night. Movie Event ID is: {movie_event_id}')
+        added_movies = []
+        discord_event_ids = []
+
+        try:
+            for movie_url in movie_urls:
+                result = await self.movie_night_service.add_movie_to_movie_night(movie_night_id, movie_url)
+                if not result:
+                    raise Exception(f'Failed to add movie: "{movie_url}".')
+
+                movie_event_id, discord_event_id = result
+                added_movies.append(movie_event_id)
+                if discord_event_id:
+                    discord_event_ids.append(discord_event_id)
+
+                await interaction.followup.send(f'Added Movie "{movie_url}" to Movie Night. Movie Event ID is: {movie_event_id}')
+                    
+        except Exception as e:
+            for movie_id in added_movies:
+                self.movie_event_manager.remove_movie_event(movie_id)
+
+            for event_id in discord_event_ids:
+                await self.discord_events.delete_event(guild_id=interaction.guild.id, event_id=event_id)
+
+            await interaction.followup.send(f"An error occurred: {e}. All added movies have been rolled back.")
 
     async def post_movie_night(self, interaction, movie_night_id: int = None): 
         await interaction.response.defer()
@@ -97,7 +119,7 @@ class MovieCommands:
 
         total_movies = len(movie_night.events)
         for index, movie_event in enumerate(movie_night.events):
-            movie_embed = create_movie_embed(movie_event, index, total_movies)
+            movie_embed = create_movie_embed(movie_event, index, total_movies) 
             all_embeds.append(movie_embed)
 
         await interaction.followup.send(embeds=all_embeds)
@@ -119,10 +141,8 @@ class MovieCommands:
         response_text = f"Movie Night #{movie_night_id}: {movie_night_details['title']}\n"
         response_text += f"Description: {movie_night_details['description']}\n"
         for event in movie_night_details['events']:
-            start_time = utc_to_local(event['start_time'],self.server_timezone)
-            start_time_unix = datetime_to_unix(start_time)
-            response_text += f"  - Event ID: {event['event_id']}\n - Name: {event['movie_name']}\n - Start Time: <t:{start_time_unix}:F>\n\n"
-
+            start_time = utc_to_local_timestamp(event['start_time'], self.server_timezone)  # Convert timestamp to local time
+            response_text += f"  - Event ID: {event['event_id']}\n - Name: {event['movie_name']}\n - Start Time: <t:{start_time}:F>\n\n"
         await interaction.followup.send(response_text)
         
     async def edit_movie_night(self, interaction, movie_night_id: int = None, title: str = None, description: str = None):
