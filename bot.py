@@ -40,9 +40,9 @@ tree = app_commands.CommandTree(client)
 
 
 @tree.command(name='create_movie_night', description="Create a new movie night", guild=discord.Object(id=guild_id))
-async def create_movie_night_command(interaction, title: str, description: str, start_time: str = None,):
+async def create_movie_night_command(interaction, title: str, description: str, start_time: str = None, start_date: str = None):
     try:
-        await movie_commands.create_movie_night(interaction, title, description, server_timezone, start_time )
+        await movie_commands.create_movie_night(interaction, title, description, server_timezone, start_time, start_date )
     except ValueError as e:
         await interaction.response.send_message(str(e))
 
