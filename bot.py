@@ -25,14 +25,13 @@ config_manager = ConfigManager()
 movie_event_manager = MovieEventManager(db_session)
 movie_night_manager = MovieNightManager(db_session)
 ping_role = config_manager.get_setting(guild_id, 'ping_role')
-announcment_channel = config_manager.get_setting(guild_id, 'announcment_channel')
+announcement_channel = config_manager.get_setting(guild_id, 'announcement_channel')
 stream_channel = config_manager.get_setting(guild_id, 'stream_channel')
 server_timezone_str = config_manager.get_setting(guild_id, 'timezone') or 'UTC'
 server_timezone = next((tz for tz in TimeZones if tz.value == server_timezone_str), None)
 movie_night_service = MovieNightService(movie_night_manager, MovieManager(db_session), movie_scraper, movie_event_manager, token, guild_id, stream_channel, server_timezone)
-movie_commands = MovieCommands(movie_night_manager, movie_night_service, movie_event_manager, token)
+movie_commands = MovieCommands(movie_night_manager, movie_night_service, movie_event_manager, token, ping_role, announcement_channel)
 config_commands = ConfigCommands(config_manager)
-
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
@@ -66,6 +65,7 @@ async def post_movie_night_command(interaction, movie_night_id: int = None):
         await movie_commands.post_movie_night(interaction, movie_night_id)
     except ValueError as e:
         await interaction.response.send_message(str(e))
+
 @tree.command(name='view_movie_night', description="View details of a movie night", guild=discord.Object(id=guild_id))
 async def view_movie_night_command(interaction, movie_night_id: int = None):
     try:
@@ -90,6 +90,14 @@ async def delete_event_command(interaction, event_id: int):
 @tree.command(name='config', description="Configs the movie bot.", guild=discord.Object(id=guild_id))
 async def config_command(interaction, stream_channel: discord.VoiceChannel = None, announcement_channel: discord.TextChannel = None, ping_role: discord.Role = None, timezone: TimeZones = None):
     await config_commands.config(interaction, stream_channel, announcement_channel, ping_role, timezone)
+
+
+@tree.command(name='next', description="Start the next movie", guild=discord.Object(id=guild_id))
+async def next_event_command(interaction, movie_night_id: int = None):
+    try:
+        await movie_commands.next_event(interaction, movie_night_id)
+    except ValueError as e:
+        await interaction.response.send_message(str(e))
 
 @client.event
 async def on_ready():

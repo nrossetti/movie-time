@@ -91,3 +91,30 @@ class MovieNightService:
             print(f"An error occurred: {e}")
             self.movie_event_manager.db_session.rollback()
             return None
+    
+    async def start_first_event(self, movie_night):
+        if movie_night.events:
+            first_event = movie_night.events[0]
+            await self.discord_events.start_event(self.guild_id, first_event.discord_event_id)
+            movie_night.status = 1  # Update status to Started
+            movie_night.current_movie_index = 0
+            self.movie_event_manager.db_session.commit()
+
+    async def end_last_event(self, movie_night):
+        if movie_night.events:
+            last_event = movie_night.events[-1]
+            await self.discord_events.end_event(self.guild_id, last_event.discord_event_id)
+            movie_night.status = 2  # Update status to Finished
+            self.movie_event_manager.db_session.commit()
+
+    async def transition_to_next_event(self, movie_night):
+        if movie_night.current_movie_index < len(movie_night.events) - 1:
+            # End current event
+            current_event = movie_night.events[movie_night.current_movie_index]
+            await self.discord_events.end_event(self.guild_id, current_event.discord_event_id)
+
+            # Start next event
+            movie_night.current_movie_index += 1
+            next_event = movie_night.events[movie_night.current_movie_index]
+            await self.discord_events.start_event(self.guild_id, next_event.discord_event_id)
+            self.movie_event_manager.db_session.commit()

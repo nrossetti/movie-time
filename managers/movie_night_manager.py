@@ -71,3 +71,12 @@ class MovieNightManager:
             ]
         }
         return details
+    
+    def get_current_movie_event(self, movie_night_id):
+        movie_night = self.find_movie_night_by_id(movie_night_id)
+        if not movie_night or not movie_night.events:
+            return None
+
+        if 0 <= movie_night.current_movie_index < len(movie_night.events):
+            return movie_night.events[movie_night.current_movie_index]
+        return None

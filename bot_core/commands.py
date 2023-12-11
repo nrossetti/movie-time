@@ -3,15 +3,17 @@ import discord
 import re
 from managers.movie_night_manager import MovieNightManager
 from bot_core.discord_events import DiscordEvents
-from bot_core.discord_actions import create_header_embed, create_movie_embed
+from bot_core.discord_actions import create_header_embed, create_movie_embed, post_now_playing
 from bot_core.helpers import TimeZones, parse_date, parse_start_time, utc_to_local_timestamp, round_to_next_quarter_hour_timestamp
 import pytz 
 
 class MovieCommands:
-    def __init__(self, movie_night_manager, movie_night_service, movie_event_manager, discord_token):
+    def __init__(self, movie_night_manager, movie_night_service, movie_event_manager, discord_token, ping_role_id=None, announcement_channel_id=None):
         self.movie_night_manager = movie_night_manager
         self.movie_night_service = movie_night_service
         self.movie_event_manager = movie_event_manager
+        self.announcement_channel_id = announcement_channel_id
+        self.ping_role_id  = ping_role_id
         self.discord_events = DiscordEvents(discord_token)
         self.server_timezone = TimeZones.UTC
     
@@ -114,7 +116,7 @@ class MovieCommands:
 
         all_embeds = []
         
-        header_embed = create_header_embed(interaction, movie_night)
+        header_embed = create_header_embed(interaction, movie_night, self.ping_role_id)
         all_embeds.append(header_embed)
 
         total_movies = len(movie_night.events)
@@ -166,6 +168,50 @@ class MovieCommands:
             await interaction.followup.send(f"Successfully deleted Movie Event with ID: {event_id}")
         else:
             await interaction.followup.send("Failed to delete movie event.")
+    
+    async def next_event(self, interaction, movie_night_id: int = None):
+        await interaction.response.defer()
+
+        try:
+            if not movie_night_id:
+                movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
+
+            if not movie_night_id:
+                await interaction.followup.send("No active Movie Night found.")
+                return
+
+            movie_night = self.movie_night_manager.get_movie_night(movie_night_id)
+            if not movie_night:
+                await interaction.followup.send(f"No Movie Night found with ID: {movie_night_id}")
+                return
+
+            if movie_night.current_movie_index == 0 and movie_night.status == 0:
+                await self.movie_night_service.start_first_event(movie_night)
+            elif movie_night.current_movie_index >= len(movie_night.events) - 1:
+                await self.movie_night_service.end_last_event(movie_night)
+            else:
+                await self.movie_night_service.transition_to_next_event(movie_night)
+
+            current_movie_event = self.movie_night_manager.get_current_movie_event(movie_night_id)
+            if current_movie_event:
+                now_playing_embed = await post_now_playing(current_movie_event, self.ping_role_id)
+            
+            print("id:",self.announcement_channel_id)
+            if self.announcement_channel_id:
+                announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
+                if announcement_channel:
+                    if announcement_channel.permissions_for(interaction.guild.me).send_messages:
+                        await announcement_channel.send(embed=now_playing_embed)
+                    else:
+                        await interaction.followup.send(f"Bot does not have permission to send messages in the announcement channel (ID: {self.announcement_channel_id}).")
+                else:
+                    await interaction.followup.send(f"Announcement channel with ID {self.announcement_channel_id} not found.")
+            else:
+                await interaction.followup.send("Announcement channel is not configured.")
+
+            await interaction.followup.send("Next movie event handled successfully.")
+        except Exception as e:
+            await interaction.followup.send(f"An error occurred: {e}")
 
 class ConfigCommands:
     def __init__(self, config_manager):
