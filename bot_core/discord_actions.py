@@ -57,15 +57,10 @@ def create_movie_embed(movie_event, index, total_movies):
 
     return embed
 
-async def post_now_playing(movie_event, ping_role_id):
+async def post_now_playing(movie_event):
     movie = movie_event.movie
     movie_title = f"{movie.name} ({movie.year})"
-    current_time = int(datetime.utcnow().timestamp())
-    time_ago = f"<t:{current_time}:R>"
-    ping_role_mention = f"<@&{ping_role_id}>" if ping_role_id else ""
-    movie_title = f"Now Playing: **{movie_title}**\n"
-    movie_description = f"{ping_role_mention} \n {time_ago}" 
-    embed = Embed(description=movie_description)
+    embed = Embed()
     embed.title = movie_title 
     embed.url = movie.url
     if movie.image_url:

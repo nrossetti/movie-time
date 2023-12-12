@@ -185,7 +185,6 @@ class MovieCommands:
                 await interaction.followup.send(f"No Movie Night found with ID: {movie_night_id}")
                 return
 
-            # Check if current movie index is the last movie
             if movie_night.current_movie_index >= len(movie_night.events) - 1:
                 await self.movie_night_service.end_last_event(movie_night)
                 await interaction.followup.send("Movie Night has ended. All movies have been played.")
@@ -195,12 +194,10 @@ class MovieCommands:
             else:
                 await self.movie_night_service.transition_to_next_event(movie_night)
 
-            # Get the current movie event after transitioning
             current_movie_event = self.movie_night_manager.get_current_movie_event(movie_night_id)
             if current_movie_event:
-                now_playing_embed = await post_now_playing(current_movie_event, self.ping_role_id)
+                now_playing_embed = await post_now_playing(current_movie_event)
             
-                # Fetch the announcement channel and send the message there
                 if self.announcement_channel_id:
                     announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
                     if announcement_channel and announcement_channel.permissions_for(interaction.guild.me).send_messages:
@@ -209,8 +206,8 @@ class MovieCommands:
                         await interaction.followup.send("Unable to post in the announcement channel.")
                 else:
                     await interaction.followup.send("Announcement channel is not configured.")
-
-            await interaction.followup.send("Next movie event handled successfully.")
+            ping_role_mention = f"<@&{self.ping_role_id}>" if self.ping_role_id else " "
+            await interaction.followup.send(ping_role_mention)
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {e}")
 
