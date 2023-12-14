@@ -103,6 +103,7 @@ class MovieCommands:
 
     async def post_movie_night(self, interaction, movie_night_id: int = None): 
         await interaction.response.defer()
+
         if not movie_night_id:
             movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
             if not movie_night_id:
@@ -114,17 +115,30 @@ class MovieCommands:
             await interaction.followup.send(f"No Movie Night found with ID: {movie_night_id}")
             return
 
-        all_embeds = []
-        
         header_embed = create_header_embed(interaction, movie_night, self.ping_role_id)
-        all_embeds.append(header_embed)
+        embeds = [header_embed]
 
-        total_movies = len(movie_night.events)
         for index, movie_event in enumerate(movie_night.events):
-            movie_embed = create_movie_embed(movie_event, index, total_movies) 
-            all_embeds.append(movie_embed)
+            embed = create_movie_embed(movie_event, index, len(movie_night.events))
+            if len(embeds) >= 10:
+                await self.send_embeds_to_announcement_channel(embeds, interaction)
+                embeds = []
+            embeds.append(embed)
 
-        await interaction.followup.send(embeds=all_embeds)
+        if embeds:
+            await self.send_embeds_to_announcement_channel(embeds, interaction)
+
+        await interaction.followup.send("Movie Night details posted successfully.")
+
+    async def send_embeds_to_announcement_channel(self, embeds, interaction):
+        if self.announcement_channel_id:
+            announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
+            if announcement_channel and announcement_channel.permissions_for(interaction.guild.me).send_messages:
+                await announcement_channel.send(embeds=embeds)
+            else:
+                await interaction.followup.send("Unable to post in the announcement channel.")
+        else:
+            await interaction.followup.send("Announcement channel is not configured.")
     
     async def view_movie_night(self, interaction, movie_night_id: int = None):
         await interaction.response.defer()
@@ -196,7 +210,7 @@ class MovieCommands:
 
             current_movie_event = self.movie_night_manager.get_current_movie_event(movie_night_id)
             if current_movie_event:
-                now_playing_embed = await post_now_playing(current_movie_event)
+                now_playing_embed = await post_now_playing(current_movie_event, self.ping_role_id)
             
                 if self.announcement_channel_id:
                     announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
@@ -206,11 +220,13 @@ class MovieCommands:
                         await interaction.followup.send("Unable to post in the announcement channel.")
                 else:
                     await interaction.followup.send("Announcement channel is not configured.")
-            ping_role_mention = f"<@&{self.ping_role_id}>" if self.ping_role_id else " "
-            await interaction.followup.send(ping_role_mention)
+
+                # Display the next movie started message
+                next_movie_title = current_movie_event.movie.name
+                await interaction.followup.send(f"Next movie started: {next_movie_title}")
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {e}")
-
+            
 class ConfigCommands:
     def __init__(self, config_manager):
         self.config_manager = config_manager
