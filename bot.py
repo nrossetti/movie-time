@@ -1,6 +1,5 @@
 import discord
 from discord import app_commands
-
 from database.database import SessionLocal
 from utils.secret_manager import SecretManager
 from managers.movie_night_manager import MovieNightManager
@@ -8,7 +7,7 @@ from managers.movie_manager import MovieManager
 from managers.movie_event_manager import MovieEventManager
 from services.movie_night_service import MovieNightService
 from services.movie_scraper import MovieScraper
-from bot_core.commands import MovieCommands, ConfigCommands
+from bot_core.commands import MovieCommands, ConfigCommands, HelpCommands
 from utils.config_manager import ConfigManager
 from bot_core.helpers import TimeZones
 
@@ -91,13 +90,17 @@ async def delete_event_command(interaction, event_id: int):
 async def config_command(interaction, stream_channel: discord.VoiceChannel = None, announcement_channel: discord.TextChannel = None, ping_role: discord.Role = None, timezone: TimeZones = None):
     await config_commands.config(interaction, stream_channel, announcement_channel, ping_role, timezone)
 
-
 @tree.command(name='next', description="Start the next movie", guild=discord.Object(id=guild_id))
 async def next_event_command(interaction, movie_night_id: int = None):
     try:
         await movie_commands.next_event(interaction, movie_night_id)
     except ValueError as e:
         await interaction.response.send_message(str(e))
+
+@tree.command(name='help', description="Displays help information for bot commands", guild=discord.Object(id=guild_id))
+async def help_command(interaction):
+    help_commands = HelpCommands()
+    await help_commands.help_command(interaction)
 
 @client.event
 async def on_ready():

@@ -71,3 +71,29 @@ async def post_now_playing(movie_event, ping_role_id):
         embed.set_image(url=movie.image_url)
 
     return embed
+
+def generate_help_pages():
+    pages = []
+
+    # Page 1
+    page1 = Embed(title="Movie Time Bot Help - Page 1/3", color=0x00ff00)
+    page1.add_field(name="/create_movie_night", value="Create a new movie night. Usage: `/create_movie_night <title> <description> [start_time] [start_date]`", inline=False)
+    page1.add_field(name="/add_movies", value="Add movies to a movie night. Usage: `/add_movies <movie_urls> [movie_night_id]`", inline=False)
+    page1.add_field(name="/remove_movie_event", value="Remove a movie event from a movie night. Usage: `/remove_movie_event [movie_event_id]`", inline=False)
+    pages.append(page1)
+
+    # Page 2
+    page2 = Embed(title="Movie Time Bot Help - Page 2/3", color=0x00ff00)
+    page2.add_field(name="/post_movie_night", value="Post the details of a movie night. Usage: `/post_movie_night [movie_night_id]`", inline=False)
+    page2.add_field(name="/view_movie_night", value="View details of a movie night. Usage: `/view_movie_night [movie_night_id]`", inline=False)
+    page2.add_field(name="/edit_movie_night", value="Edit a movie night. Usage: `/edit_movie_night [movie_night_id] [title] [description]`", inline=False)
+    pages.append(page2)
+
+    # Page 3
+    page3 = Embed(title="Movie Time Bot Help - Page 3/3", color=0x00ff00)
+    page3.add_field(name="/delete_event", value="Delete a movie event. Usage: `/delete_event <event_id>`", inline=False)
+    page3.add_field(name="/config", value="Configure the movie bot settings. Usage: `/config [stream_channel] [announcement_channel] [ping_role] [timezone]`", inline=False)
+    page3.add_field(name="/next", value="Start the next movie in a movie night. Usage: `/next [movie_night_id]`", inline=False)
+    pages.append(page3)
+
+    return pages

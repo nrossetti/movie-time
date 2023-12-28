@@ -1,9 +1,11 @@
 from datetime import datetime
 import discord
+from discord.ui import Button, View
+from discord import ButtonStyle
 import re
 from managers.movie_night_manager import MovieNightManager
 from bot_core.discord_events import DiscordEvents
-from bot_core.discord_actions import create_header_embed, create_movie_embed, post_now_playing
+from bot_core.discord_actions import create_header_embed, create_movie_embed, post_now_playing, generate_help_pages
 from bot_core.helpers import TimeZones, parse_date, parse_start_time, utc_to_local_timestamp, round_to_next_quarter_hour_timestamp
 import pytz 
 
@@ -259,3 +261,38 @@ class ConfigCommands:
 
         await interaction.response.defer()
         await interaction.followup.send("\n".join(response_messages))
+
+class HelpCommands:
+    def __init__(self):
+        pass
+
+    async def help_command(self, interaction):
+        pages = generate_help_pages()
+        view = self.create_view(0, len(pages), pages)
+        await interaction.response.send_message(embed=pages[0], view=view, ephemeral=True)
+
+    def create_view(self, current_page, total_pages, pages):
+        view = discord.ui.View()
+
+        previous_button = discord.ui.Button(label="Previous", style=discord.ButtonStyle.grey)
+        next_button = discord.ui.Button(label="Next", style=discord.ButtonStyle.grey)
+
+        async def previous_callback(interaction):
+            nonlocal current_page
+            if current_page > 0:
+                current_page -= 1
+                await interaction.response.edit_message(embed=pages[current_page], view=self.create_view(current_page, total_pages, pages))
+
+        async def next_callback(interaction):
+            nonlocal current_page
+            if current_page < total_pages - 1:
+                current_page += 1
+                await interaction.response.edit_message(embed=pages[current_page], view=self.create_view(current_page, total_pages, pages))
+
+        previous_button.callback = previous_callback
+        next_button.callback = next_callback
+
+        view.add_item(previous_button)
+        view.add_item(next_button)
+
+        return view
