@@ -274,20 +274,20 @@ class HelpCommands:
     def create_view(self, current_page, total_pages, pages):
         view = discord.ui.View()
 
-        previous_button = discord.ui.Button(label="Previous", style=discord.ButtonStyle.grey)
-        next_button = discord.ui.Button(label="Next", style=discord.ButtonStyle.grey)
+        previous_button = discord.ui.Button(label="Previous", style=discord.ButtonStyle.grey, disabled=current_page == 0)
+        next_button = discord.ui.Button(label="Next", style=discord.ButtonStyle.grey, disabled=current_page == total_pages - 1)
 
         async def previous_callback(interaction):
             nonlocal current_page
-            if current_page > 0:
-                current_page -= 1
-                await interaction.response.edit_message(embed=pages[current_page], view=self.create_view(current_page, total_pages, pages))
+            current_page -= 1
+            new_embed = pages[current_page].set_footer(text=f"Page {current_page + 1} of {total_pages}")
+            await interaction.response.edit_message(embed=new_embed, view=self.create_view(current_page, total_pages, pages))
 
         async def next_callback(interaction):
             nonlocal current_page
-            if current_page < total_pages - 1:
-                current_page += 1
-                await interaction.response.edit_message(embed=pages[current_page], view=self.create_view(current_page, total_pages, pages))
+            current_page += 1
+            new_embed = pages[current_page].set_footer(text=f"Page {current_page + 1} of {total_pages}")
+            await interaction.response.edit_message(embed=new_embed, view=self.create_view(current_page, total_pages, pages))
 
         previous_button.callback = previous_callback
         next_button.callback = next_callback
