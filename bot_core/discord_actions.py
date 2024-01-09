@@ -2,12 +2,33 @@ from discord import Embed
 from datetime import datetime
 
 def create_header_embed(interaction, movie_night, ping_role_id):
-    number_map = {1: "SINGLE", 2: "DOUBLE", 3: "TRIPLE", 4: "QUAD", 5: "PENTA", 6: "HEXA"}
+    number_map = {
+        1: "SINGLE",
+        2: "DOUBLE",
+        3: "TRIPLE",
+        4: "QUADRUPLE",
+        5: "QUINTUPLE",
+        6: "SEXTUPLE",
+        7: "SEPTUPLE",
+        8: "OCTUPLE",
+        9: "NONUPLE",
+        10: "DECUPLE",
+        11: "UNDECUPLE",
+        12: "DUODECUPLE",
+        13: "TREDECUPLE",
+        14: "QUATTUORDECUPLE",
+        15: "QUINDECUPLE",
+        16: "SEXDECUPLE",
+        17: "SEPTENDECUPLE",
+        18: "OCTODECUPLE",
+        19: "NOVENDECUPLE",
+        20: "VIGINTUPLE"
+    }
     invoking_user = interaction.user
     invoking_user_name = invoking_user.display_name
     invoking_user_avatar_url = invoking_user.display_avatar.url
     number_of_movies = len(movie_night.events)
-    announcment = f"{number_map.get(number_of_movies, 'UNKNOWN')} HEADER TONIGHT"
+    announcment = f"{number_map.get(number_of_movies, 'MULTI')} HEADER TONIGHT"
     title = movie_night.title
     description = f"*{movie_night.description if movie_night.description else 'No description available'}*"
     if ping_role_id:
