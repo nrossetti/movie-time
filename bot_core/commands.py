@@ -159,7 +159,8 @@ class MovieCommands:
         response_text = f"Movie Night #{movie_night_id}: {movie_night_details['title']}\n"
         response_text += f"Description: {movie_night_details['description']}\n"
         for event in movie_night_details['events']:
-            start_time = utc_to_local_timestamp(event['start_time'], self.server_timezone)  # Convert timestamp to local time
+            server_timezone_str = self.server_timezone.value 
+            start_time = utc_to_local_timestamp(event['start_time'], server_timezone_str)
             response_text += f"  - Event ID: {event['event_id']}\n - Name: {event['movie_name']}\n - Start Time: <t:{start_time}:F>\n\n"
         await interaction.followup.send(response_text)
         
@@ -223,7 +224,6 @@ class MovieCommands:
                 else:
                     await interaction.followup.send("Announcement channel is not configured.")
 
-                # Display the next movie started message
                 next_movie_title = current_movie_event.movie.name
                 await interaction.followup.send(f"Next movie started: {next_movie_title}")
         except Exception as e:
