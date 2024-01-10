@@ -1,13 +1,11 @@
+import discord, re, logging
 from datetime import datetime
-import discord
-from discord.ui import Button, View
-from discord import ButtonStyle
-import re
-from managers.movie_night_manager import MovieNightManager
 from bot_core.discord_events import DiscordEvents
 from bot_core.discord_actions import create_header_embed, create_movie_embed, post_now_playing, generate_help_pages
 from bot_core.helpers import TimeZones, parse_date, parse_start_time, utc_to_local_timestamp, round_to_next_quarter_hour_timestamp
 import pytz 
+
+logger = logging.getLogger(__name__)
 
 class MovieCommands:
     def __init__(self, movie_night_manager, movie_night_service, movie_event_manager, discord_token, ping_role_id=None, announcement_channel_id=None):
@@ -18,70 +16,86 @@ class MovieCommands:
         self.ping_role_id  = ping_role_id
         self.discord_events = DiscordEvents(discord_token)
         self.server_timezone = TimeZones.UTC
-    
+        logger.info("MovieCommands initialized")
+
     def parse_movie_urls(self, movie_urls):
         if isinstance(movie_urls, str):
-            return list(filter(None, re.split(r'[,\t\s]+', movie_urls)))
-        elif isinstance(movie_urls, list):
-            return movie_urls
-        return []
+            movie_urls = list(filter(None, re.split(r'[,\t\s]+', movie_urls)))
+        elif not isinstance(movie_urls, list):
+            movie_urls = []
+        logger.info(f"Parsed movie URLs: {movie_urls}")
+        return movie_urls
 
     async def create_movie_night(self, interaction, title: str, description: str, server_timezone_enum: TimeZones, start_time: str = None, start_date: str = None):
-        server_timezone = pytz.timezone(server_timezone_enum.value)
-        current_local_datetime = datetime.now(tz=server_timezone)
-        parsed_date = parse_date(start_date) if start_date else current_local_datetime.date()
+        try:
+            server_timezone = pytz.timezone(server_timezone_enum.value)
+            current_local_datetime = datetime.now(tz=server_timezone)
+            parsed_date = parse_date(start_date) if start_date else current_local_datetime.date()
 
-        if parsed_date < current_local_datetime.date():
-            await interaction.response.send_message("The specified date must be in the future.")
-            return
-        if start_date and not start_time:
-            await interaction.response.send_message("A start time must be specified for future dates.")
-            return
-        
-        if start_time:
-            parsed_time_unix = parse_start_time(start_time, server_timezone_enum, date_str=start_date)
-        else:
-            parsed_time_unix = int(current_local_datetime.timestamp())
+            if parsed_date < current_local_datetime.date():
+                await interaction.response.send_message("The specified date must be in the future.")
+                return
+            if start_date and not start_time:
+                await interaction.response.send_message("A start time must be specified for future dates.")
+                return
+            
+            if start_time:
+                parsed_time_unix = parse_start_time(start_time, server_timezone_enum, date_str=start_date)
+            else:
+                parsed_time_unix = int(current_local_datetime.timestamp())
 
-        rounded_time_unix = round_to_next_quarter_hour_timestamp(parsed_time_unix)
-        movie_night_id = self.movie_night_manager.create_movie_night(title, description, rounded_time_unix)
-        await interaction.response.send_message(f"Movie Night created with ID: {movie_night_id}")
+            rounded_time_unix = round_to_next_quarter_hour_timestamp(parsed_time_unix)
+            movie_night_id = self.movie_night_manager.create_movie_night(title, description, rounded_time_unix)
+            await interaction.response.send_message(f"Movie Night created with ID: {movie_night_id}")
+            logger.info(f"Created Movie Night with ID: {movie_night_id}")
+        except Exception as e:
+            logger.error(f"Error in create_movie_night: {e}")
+            raise e
 
     async def remove_movie_event_command(self, interaction, movie_event_id=None):
-        if movie_event_id is None:
-            movie_event_id = self.movie_event_manager.find_last_movie_event()
+        try:
+            if movie_event_id is None:
+                movie_event_id = self.movie_event_manager.find_last_movie_event()
                 
-        if movie_event_id is None:
-            await interaction.response.send_message("No movie event found to remove.")
-            return
+            if movie_event_id is None:
+                await interaction.response.send_message("No movie event found to remove.")
+                return
             
-        discord_event_id, result_message = self.movie_event_manager.remove_movie_event(movie_event_id)
+            discord_event_id, result_message = self.movie_event_manager.remove_movie_event(movie_event_id)
             
-        if discord_event_id: 
-            await self.discord_events.delete_event(guild_id=interaction.guild.id,event_id=discord_event_id)
+            if discord_event_id: 
+                await self.discord_events.delete_event(guild_id=interaction.guild.id,event_id=discord_event_id)
             
-        await interaction.response.send_message(result_message)
+            await interaction.response.send_message(result_message)
+            logger.info(f"Removed movie event: {movie_event_id}")
+        except Exception as e:
+            logger.error(f"Error in remove_movie_event_command: {e}")
+            raise e
 
     async def add_movies(self, interaction, movie_urls: str or list, movie_night_id: int = None):
-        await interaction.response.defer()
-
-        movie_urls = self.parse_movie_urls(movie_urls)
-        if not movie_urls:
-            await interaction.followup.send("No valid movie URLs provided.")
-            return
-        await self.process_movie_urls(interaction, movie_urls, movie_night_id)
-    
-    async def process_movie_urls(self, interaction, movie_urls: str or list, movie_night_id: int = None):
-        if movie_night_id is None:
-            movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
-            if movie_night_id is None:
-                await interaction.followup.send("No movie nights found.")
-                return
-
-        added_movies = []
-        discord_event_ids = []
-
         try:
+            await interaction.response.defer()
+            movie_urls = self.parse_movie_urls(movie_urls)
+            if not movie_urls:
+                await interaction.followup.send("No valid movie URLs provided.")
+                return
+            await self.process_movie_urls(interaction, movie_urls, movie_night_id)
+            logger.info(f"Added movies to movie night ID {movie_night_id}: {movie_urls}")
+        except Exception as e:
+            logger.error(f"Error in add_movies: {e}")
+            raise e
+
+    async def process_movie_urls(self, interaction, movie_urls: str or list, movie_night_id: int = None):
+        try:
+            if movie_night_id is None:
+                movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
+                if movie_night_id is None:
+                    await interaction.followup.send("No movie nights found.")
+                    return
+
+            added_movies = []
+            discord_event_ids = []
+
             for movie_url in movie_urls:
                 result = await self.movie_night_service.add_movie_to_movie_night(movie_night_id, movie_url)
                 if not result:
@@ -93,7 +107,8 @@ class MovieCommands:
                     discord_event_ids.append(discord_event_id)
 
                 await interaction.followup.send(f'Added Movie "{movie_url}" to Movie Night. Movie Event ID is: {movie_event_id}')
-                    
+
+            logger.info(f"Processed movie URLs for movie night ID {movie_night_id}: {movie_urls}")
         except Exception as e:
             for movie_id in added_movies:
                 self.movie_event_manager.remove_movie_event(movie_id)
@@ -102,94 +117,119 @@ class MovieCommands:
                 await self.discord_events.delete_event(guild_id=interaction.guild.id, event_id=event_id)
 
             await interaction.followup.send(f"An error occurred: {e}. All added movies have been rolled back.")
-
-    async def post_movie_night(self, interaction, movie_night_id: int = None): 
-        await interaction.response.defer()
-
-        if not movie_night_id:
-            movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
+            logger.error(f"Error in process_movie_urls: {e}")
+            raise e
+        
+    async def post_movie_night(self, interaction, movie_night_id: int = None):
+        try:
+            await interaction.response.defer()
             if not movie_night_id:
-                await interaction.followup.send("No recent Movie Night found.")
+                movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
+                if not movie_night_id:
+                    await interaction.followup.send("No recent Movie Night found.")
+                    return
+
+            movie_night = self.movie_night_manager.get_movie_night(movie_night_id)
+            if not movie_night:
+                await interaction.followup.send(f"No Movie Night found with ID: {movie_night_id}")
                 return
 
-        movie_night = self.movie_night_manager.get_movie_night(movie_night_id)
-        if not movie_night:
-            await interaction.followup.send(f"No Movie Night found with ID: {movie_night_id}")
-            return
+            header_embed = create_header_embed(interaction, movie_night, self.ping_role_id)
+            embeds = [header_embed]
 
-        header_embed = create_header_embed(interaction, movie_night, self.ping_role_id)
-        embeds = [header_embed]
+            for index, movie_event in enumerate(movie_night.events):
+                embed = create_movie_embed(movie_event, index, len(movie_night.events))
+                if len(embeds) >= 10:
+                    await self.send_embeds_to_announcement_channel(embeds, interaction)
+                    embeds = []
+                embeds.append(embed)
 
-        for index, movie_event in enumerate(movie_night.events):
-            embed = create_movie_embed(movie_event, index, len(movie_night.events))
-            if len(embeds) >= 10:
+            if embeds:
                 await self.send_embeds_to_announcement_channel(embeds, interaction)
-                embeds = []
-            embeds.append(embed)
 
-        if embeds:
-            await self.send_embeds_to_announcement_channel(embeds, interaction)
-
-        await interaction.followup.send("Movie Night details posted successfully.")
+            await interaction.followup.send("Movie Night details posted successfully.")
+            logger.info(f"Posted movie night ID {movie_night_id}")
+        except Exception as e:
+            logger.error(f"Error in post_movie_night: {e}")
+            raise e
 
     async def send_embeds_to_announcement_channel(self, embeds, interaction):
-        if self.announcement_channel_id:
-            announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
-            if announcement_channel and announcement_channel.permissions_for(interaction.guild.me).send_messages:
-                await announcement_channel.send(embeds=embeds)
+        try:
+            if self.announcement_channel_id:
+                announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
+                if announcement_channel and announcement_channel.permissions_for(interaction.guild.me).send_messages:
+                    await announcement_channel.send(embeds=embeds)
+                else:
+                    await interaction.followup.send("Unable to post in the announcement channel.")
             else:
-                await interaction.followup.send("Unable to post in the announcement channel.")
-        else:
-            await interaction.followup.send("Announcement channel is not configured.")
+                await interaction.followup.send("Announcement channel is not configured.")
+            logger.info("Sent embeds to announcement channel")
+        except Exception as e:
+            logger.error(f"Error in send_embeds_to_announcement_channel: {e}")
+            raise e
     
     async def view_movie_night(self, interaction, movie_night_id: int = None):
-        await interaction.response.defer()
-        if movie_night_id is None:
-            movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
+        try:
+            await interaction.response.defer()
             if movie_night_id is None:
-                await interaction.followup.send("No movie nights found.")
+                movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
+                if movie_night_id is None:
+                    await interaction.followup.send("No movie nights found.")
+                    return
+
+            movie_night_details = self.movie_night_manager.get_movie_night_details(movie_night_id)
+
+            if not movie_night_details:
+                await interaction.followup.send("Movie Night not found.")
                 return
 
-        movie_night_details = self.movie_night_manager.get_movie_night_details(movie_night_id)
+            response_text = f"Movie Night #{movie_night_id}: {movie_night_details['title']}\n"
+            response_text += f"Description: {movie_night_details['description']}\n"
+            for event in movie_night_details['events']:
+                server_timezone_str = self.server_timezone.value
+                start_time = utc_to_local_timestamp(event['start_time'], server_timezone_str)
+                response_text += f"  - Event ID: {event['event_id']}\n - Name: {event['movie_name']}\n - Start Time: <t:{start_time}:F>\n\n"
+            await interaction.followup.send(response_text)
+            logger.info(f"Viewed movie night ID {movie_night_id}")
+        except Exception as e:
+            logger.error(f"Error in view_movie_night: {e}")
+            raise e
 
-        if not movie_night_details:
-            await interaction.followup.send("Movie Night not found.")
-            return
-
-        response_text = f"Movie Night #{movie_night_id}: {movie_night_details['title']}\n"
-        response_text += f"Description: {movie_night_details['description']}\n"
-        for event in movie_night_details['events']:
-            server_timezone_str = self.server_timezone.value 
-            start_time = utc_to_local_timestamp(event['start_time'], server_timezone_str)
-            response_text += f"  - Event ID: {event['event_id']}\n - Name: {event['movie_name']}\n - Start Time: <t:{start_time}:F>\n\n"
-        await interaction.followup.send(response_text)
-        
     async def edit_movie_night(self, interaction, movie_night_id: int = None, title: str = None, description: str = None):
-        if movie_night_id is None:
-            movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
+        try:
             if movie_night_id is None:
-                await interaction.followup.send("No movie nights found.")
-                return
+                movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
+                if movie_night_id is None:
+                    await interaction.followup.send("No movie nights found.")
+                    return
 
-        if title or description is not None:
-            movie_night_id = self.movie_night_manager.update_movie_night(movie_night_id, title, description) 
-    
-        await interaction.response.send_message(f"Movie Night updated on ID: {movie_night_id}")
+            if title or description is not None:
+                movie_night_id = self.movie_night_manager.update_movie_night(movie_night_id, title, description)
+
+            await interaction.response.send_message(f"Movie Night updated on ID: {movie_night_id}")
+            logger.info(f"Edited movie night ID {movie_night_id}")
+        except Exception as e:
+            logger.error(f"Error in edit_movie_night: {e}")
+            raise e
 
     async def delete_event(self, interaction, event_id: int):
-        await interaction.response.defer()
+        try:
+            await interaction.response.defer()
+            success = self.movie_night_manager.delete_movie_event(event_id)
 
-        success = self.movie_night_manager.delete_movie_event(event_id)
-
-        if success:
-            await interaction.followup.send(f"Successfully deleted Movie Event with ID: {event_id}")
-        else:
-            await interaction.followup.send("Failed to delete movie event.")
+            if success:
+                await interaction.followup.send(f"Successfully deleted Movie Event with ID: {event_id}")
+                logger.info(f"Deleted movie event ID {event_id}")
+            else:
+                await interaction.followup.send("Failed to delete movie event.")
+                logger.warning(f"Failed to delete movie event ID {event_id}")
+        except Exception as e:
+            logger.error(f"Error in delete_event: {e}")
+            raise e
     
     async def next_event(self, interaction, movie_night_id: int = None):
-        await interaction.response.defer()
-
         try:
+            await interaction.response.defer()
             if not movie_night_id:
                 movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
 
@@ -205,16 +245,19 @@ class MovieCommands:
             if movie_night.current_movie_index >= len(movie_night.events) - 1:
                 await self.movie_night_service.end_last_event(movie_night)
                 await interaction.followup.send("Movie Night has ended. All movies have been played.")
+                logger.info(f"Ended movie night ID {movie_night_id}")
                 return
             elif movie_night.current_movie_index == 0 and movie_night.status == 0:
                 await self.movie_night_service.start_first_event(movie_night)
+                logger.info(f"Started first event of movie night ID {movie_night_id}")
             else:
                 await self.movie_night_service.transition_to_next_event(movie_night)
+                logger.info(f"Transitioned to next event in movie night ID {movie_night_id}")
 
             current_movie_event = self.movie_night_manager.get_current_movie_event(movie_night_id)
             if current_movie_event:
                 now_playing_embed = await post_now_playing(current_movie_event, self.ping_role_id)
-            
+
                 if self.announcement_channel_id:
                     announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
                     if announcement_channel and announcement_channel.permissions_for(interaction.guild.me).send_messages:
@@ -226,8 +269,10 @@ class MovieCommands:
 
                 next_movie_title = current_movie_event.movie.name
                 await interaction.followup.send(f"Next movie started: {next_movie_title}")
+                logger.info(f"Started next movie: {next_movie_title} in movie night ID {movie_night_id}")
         except Exception as e:
-            await interaction.followup.send(f"An error occurred: {e}")
+            logger.error(f"Error in next_event: {e}")
+            raise e
             
 class ConfigCommands:
     def __init__(self, config_manager):
@@ -264,12 +309,17 @@ class ConfigCommands:
 
 class HelpCommands:
     def __init__(self):
-        pass
+        logger.info("HelpCommands initialized")
 
     async def help_command(self, interaction):
-        pages = generate_help_pages()
-        view = self.create_view(0, len(pages), pages)
-        await interaction.response.send_message(embed=pages[0], view=view, ephemeral=True)
+        try:
+            pages = generate_help_pages()
+            view = self.create_view(0, len(pages), pages)
+            await interaction.response.send_message(embed=pages[0], view=view, ephemeral=True)
+            logger.info("Help command executed")
+        except Exception as e:
+            logger.error(f"Error in help_command: {e}")
+            raise e
 
     def create_view(self, current_page, total_pages, pages):
         view = discord.ui.View()
@@ -282,12 +332,14 @@ class HelpCommands:
             current_page -= 1
             new_embed = pages[current_page].set_footer(text=f"Page {current_page + 1} of {total_pages}")
             await interaction.response.edit_message(embed=new_embed, view=self.create_view(current_page, total_pages, pages))
+            logger.info(f"Help page {current_page + 1} displayed")
 
         async def next_callback(interaction):
             nonlocal current_page
             current_page += 1
             new_embed = pages[current_page].set_footer(text=f"Page {current_page + 1} of {total_pages}")
             await interaction.response.edit_message(embed=new_embed, view=self.create_view(current_page, total_pages, pages))
+            logger.info(f"Help page {current_page + 1} displayed")
 
         previous_button.callback = previous_callback
         next_button.callback = next_callback

@@ -1,4 +1,5 @@
-import discord
+import discord, logging, os
+from logging.handlers import RotatingFileHandler
 from discord import app_commands
 from database.database import SessionLocal
 from utils.secret_manager import SecretManager
@@ -11,6 +12,20 @@ from bot_core.commands import MovieCommands, ConfigCommands, HelpCommands
 from utils.config_manager import ConfigManager
 from bot_core.helpers import TimeZones
 
+log_directory = os.path.join('movie-time', 'storage', 'logs')
+log_filename = os.path.join(log_directory, 'bot.log')
+
+if not os.path.exists(log_directory):
+    os.makedirs(log_directory)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        RotatingFileHandler(log_filename, maxBytes=5*1024*1024, backupCount=5),
+        logging.StreamHandler()
+    ]
+)
 config_manager = ConfigManager()
 secrets = SecretManager().load_secrets()
 token = secrets['token']
