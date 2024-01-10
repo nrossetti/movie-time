@@ -19,7 +19,7 @@ class DBManager:
         new_movie_event = MovieEvent(
             movie_night_id=movie_night_id,
             movie_id=movie_id,
-            start_time=start_time,  # This is now a UNIX timestamp
+            start_time=start_time,
             discord_event_id=discord_event_id
             )
         session.add(new_movie_event)

@@ -3,13 +3,13 @@ import json
 
 class ConfigManager:
     def __init__(self):
-        self.directory = 'storage/settings'
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.directory = os.path.join(base_dir, 'storage', 'settings')
 
     def save_settings(self, guild_id, settings_dict):
         filename = f'{guild_id}_settings.json'
         filepath = os.path.join(self.directory, filename)
         
-        # Create the directory if it doesn't exist
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 

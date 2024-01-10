@@ -11,7 +11,6 @@ from bot_core.commands import MovieCommands, ConfigCommands, HelpCommands
 from utils.config_manager import ConfigManager
 from bot_core.helpers import TimeZones
 
-
 config_manager = ConfigManager()
 secrets = SecretManager().load_secrets()
 token = secrets['token']
