@@ -13,7 +13,7 @@ class MovieNight(Base):
     start_time = Column(Integer)
     current_movie_index = Column(Integer, default=0) 
     status = Column(Integer, default=0)  #(0=Not Started, 1=Started, 2=Finished)
-
+    discord_post_id = Column(String)
     events = relationship("MovieEvent", back_populates="movie_night")
 
 class MovieEvent(Base):

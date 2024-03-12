@@ -80,3 +80,9 @@ class MovieNightManager:
         if 0 <= movie_night.current_movie_index < len(movie_night.events):
             return movie_night.events[movie_night.current_movie_index]
         return None
+    
+    def update_movie_night_post_ids(self, movie_night_id, discord_post_ids):
+        movie_night = self.db_session.query(MovieNight).filter_by(id=movie_night_id).first()
+        if movie_night:
+            movie_night.discord_post_id = discord_post_ids
+            self.db_session.commit()

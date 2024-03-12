@@ -119,55 +119,107 @@ class MovieCommands:
             await interaction.followup.send(f"An error occurred: {e}. All added movies have been rolled back.")
             logger.error(f"Error in process_movie_urls: {e}")
             raise e
-        
-    async def post_movie_night(self, interaction, movie_night_id: int = None):
-        try:
-            await interaction.response.defer()
-            if not movie_night_id:
-                movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
-                if not movie_night_id:
-                    await interaction.followup.send("No recent Movie Night found.")
-                    return
 
+    async def post_movie_night(self, interaction, movie_night_id: int = None):
+        await interaction.response.defer()
+
+        if not movie_night_id:
+            movie_night_id = self.movie_night_manager.get_most_recent_movie_night_id()
+            if not movie_night_id:
+                logger.info("No recent Movie Night found.")
+                await interaction.followup.send("No recent Movie Night found.")
+                return
+
+        try:
             movie_night = self.movie_night_manager.get_movie_night(movie_night_id)
             if not movie_night:
+                logger.info(f"No Movie Night found with ID: {movie_night_id}")
                 await interaction.followup.send(f"No Movie Night found with ID: {movie_night_id}")
                 return
 
-            header_embed = create_header_embed(interaction, movie_night, self.ping_role_id)
-            embeds = [header_embed]
-
-            for index, movie_event in enumerate(movie_night.events):
-                embed = create_movie_embed(movie_event, index, len(movie_night.events))
-                if len(embeds) >= 10:
-                    await self.send_embeds_to_announcement_channel(embeds, interaction)
-                    embeds = []
-                embeds.append(embed)
-
-            if embeds:
-                await self.send_embeds_to_announcement_channel(embeds, interaction)
-
-            await interaction.followup.send("Movie Night details posted successfully.")
-            logger.info(f"Posted movie night ID {movie_night_id}")
-        except Exception as e:
-            logger.error(f"Error in post_movie_night: {e}")
-            raise e
-
-    async def send_embeds_to_announcement_channel(self, embeds, interaction):
-        try:
-            if self.announcement_channel_id:
-                announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
-                if announcement_channel and announcement_channel.permissions_for(interaction.guild.me).send_messages:
-                    await announcement_channel.send(embeds=embeds)
-                else:
-                    await interaction.followup.send("Unable to post in the announcement channel.")
-            else:
+            announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
+            if not announcement_channel:
+                logger.info("Announcement channel is not configured.")
                 await interaction.followup.send("Announcement channel is not configured.")
-            logger.info("Sent embeds to announcement channel")
+                return
+
+            if movie_night.discord_post_id:
+                try:
+                    existing_post_ids = movie_night.discord_post_id.split(',')
+                    for post_id in existing_post_ids:
+                        try:
+                            await announcement_channel.fetch_message(int(post_id))
+                        except discord.NotFound:
+                            logger.info(f"Post with ID {post_id} not found. Proceeding with reposting.")
+                            raise discord.NotFound
+
+                    message_links = [f"https://discord.com/channels/{interaction.guild.id}/{self.announcement_channel_id}/{post_id}" for post_id in existing_post_ids]
+                    await interaction.followup.send(f"Movie Night already posted: {' | '.join(message_links)}")
+                    logger.info(f"Movie Night already posted. ID: {movie_night_id}")
+                    return
+                except discord.NotFound:
+                    for post_id in existing_post_ids:
+                        try:
+                            msg = await announcement_channel.fetch_message(int(post_id))
+                            await msg.delete()
+                        except discord.NotFound:
+                            continue
+                    self.movie_night_manager.update_movie_night_post_ids(movie_night_id, "")
+
+            header_embed = create_header_embed(interaction, movie_night, self.ping_role_id)
+            movie_embeds = [create_movie_embed(event, index, len(movie_night.events)) for index, event in enumerate(movie_night.events)]
+            new_post_ids = []
+
+            for i in range(0, len(movie_embeds), 10):
+                embeds_to_post = [header_embed] + movie_embeds[i:i+10] if i == 0 else movie_embeds[i:i+10]
+                message = await announcement_channel.send(embeds=embeds_to_post)
+                new_post_ids.append(str(message.id))
+                logger.info(f"Posted or updated movie night details with message ID {message.id}")
+
+            self.movie_night_manager.update_discord_post_id(movie_night_id, ",".join(new_post_ids))
+            await interaction.followup.send(f"Movie Night details posted successfully. ID: {movie_night_id}. Post IDs: {', '.join(new_post_ids)}")
         except Exception as e:
-            logger.error(f"Error in send_embeds_to_announcement_channel: {e}")
-            raise e
+            logger.error(f"An error occurred while posting the Movie Night: {e}")
+            await interaction.followup.send("An error occurred while posting the Movie Night.")
     
+    async def update_movie_night_post(self, interaction, movie_night_id: int):
+        movie_night = self.movie_night_manager.get_movie_night(movie_night_id)
+        if not movie_night:
+            await interaction.followup.send(f"No movie night found with ID: {movie_night_id}")
+            return
+
+        announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
+        if not announcement_channel:
+            await interaction.followup.send("Announcement channel is not configured correctly.")
+            return
+
+        if not movie_night.discord_post_id:
+            await interaction.followup.send("This movie night has not been posted yet, so there is nothing to update.")
+            return
+
+        existing_post_ids = movie_night.discord_post_id.split(',')
+        header_embed = create_header_embed(interaction, movie_night, self.ping_role_id)
+        movie_embeds = [create_movie_embed(event, index, len(movie_night.events)) for index, event in enumerate(movie_night.events)]
+        all_embeds = [header_embed] + movie_embeds
+
+        embed_chunks = [all_embeds[i:i + 10] for i in range(0, len(all_embeds), 10)]
+        new_post_ids = []
+
+        for post_id in existing_post_ids:
+            try:
+                message = await announcement_channel.fetch_message(int(post_id))
+                await message.delete()
+            except discord.NotFound:
+                pass
+
+        for embed_chunk in embed_chunks:
+            message = await announcement_channel.send(embeds=embed_chunk)
+            new_post_ids.append(str(message.id))
+
+        self.movie_night_manager.update_discord_post_id(movie_night_id, ",".join(new_post_ids))
+
+        await interaction.followup.send("Movie night details updated successfully.")
+
     async def view_movie_night(self, interaction, movie_night_id: int = None):
         try:
             await interaction.response.defer()
@@ -243,16 +295,17 @@ class MovieCommands:
                 return
 
             if movie_night.current_movie_index >= len(movie_night.events) - 1:
-                await self.movie_night_service.end_last_event(movie_night)
                 await interaction.followup.send("Movie Night has ended. All movies have been played.")
-                logger.info(f"Ended movie night ID {movie_night_id}")
+                logger.info(f"Movie night ID {movie_night_id} has ended. All movies have been played.")
                 return
-            elif movie_night.current_movie_index == 0 and movie_night.status == 0:
-                await self.movie_night_service.start_first_event(movie_night)
-                logger.info(f"Started first event of movie night ID {movie_night_id}")
+            elif movie_night.current_movie_index == -1:
+                movie_night.current_movie_index = 0
+                self.movie_night_manager.update_movie_night(movie_night)
+                logger.info(f"Started first movie of movie night ID {movie_night_id}")
             else:
-                await self.movie_night_service.transition_to_next_event(movie_night)
-                logger.info(f"Transitioned to next event in movie night ID {movie_night_id}")
+                movie_night.current_movie_index += 1
+                self.movie_night_manager.update_movie_night(movie_night)
+                logger.info(f"Proceeded to next movie in movie night ID {movie_night_id}")
 
             current_movie_event = self.movie_night_manager.get_current_movie_event(movie_night_id)
             if current_movie_event:
@@ -281,14 +334,11 @@ class MovieCommands:
             await interaction.response.send_message("Movie Night not found.", ephemeral=True)
             return
         
-        # Delete movie events associated with this movie night
         for event in movie_night.events:
             if event.discord_event_id:
-                # Delete the Discord event post, if any
                 await self.discord_events.delete_event(guild_id=interaction.guild.id, event_id=event.discord_event_id)
             self.movie_event_manager.remove_movie_event(event.id)
         
-        # Delete the movie night itself
         self.movie_night_manager.delete_movie_night(movie_night_id)
         
         await interaction.response.send_message(f"Movie Night {movie_night_id} and its events have been canceled and deleted.", ephemeral=True)   

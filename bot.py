@@ -106,6 +106,16 @@ async def cancel_movie_night_command(interaction, movie_night_id: int):
         await movie_commands.cancel_movie_night(interaction, movie_night_id)
     except ValueError as e:
         await interaction.response.send_message(str(e), ephemeral=True)
+        
+@tree.command(name='update', description="Update the movie night post", guild=discord.Object(id=guild_id))
+async def update_command(interaction: discord.Interaction, movie_night_id: int):
+    try:
+        await movie_commands.update_movie_night_post(interaction, movie_night_id)
+    except ValueError as e:
+        await interaction.response.send_message(str(e), ephemeral=True)
+    except Exception as e:
+        logging.error(f"An error occurred while updating the movie night: {e}")
+        await interaction.response.send_message("An error occurred while trying to update the movie night.", ephemeral=True)
 
 @tree.command(name='config', description="Configs the movie bot.", guild=discord.Object(id=guild_id))
 async def config_command(interaction, stream_channel: discord.VoiceChannel = None, announcement_channel: discord.TextChannel = None, ping_role: discord.Role = None, timezone: TimeZones = None):
