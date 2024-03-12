@@ -100,6 +100,13 @@ async def delete_event_command(interaction, event_id: int):
     except ValueError as e:
         await interaction.response.send_message(str(e))
         
+@tree.command(name='cancel_movie_night', description="Cancel a movie night and its events", guild=discord.Object(id=guild_id))
+async def cancel_movie_night_command(interaction, movie_night_id: int):
+    try:
+        await movie_commands.cancel_movie_night(interaction, movie_night_id)
+    except ValueError as e:
+        await interaction.response.send_message(str(e), ephemeral=True)
+
 @tree.command(name='config', description="Configs the movie bot.", guild=discord.Object(id=guild_id))
 async def config_command(interaction, stream_channel: discord.VoiceChannel = None, announcement_channel: discord.TextChannel = None, ping_role: discord.Role = None, timezone: TimeZones = None):
     await config_commands.config(interaction, stream_channel, announcement_channel, ping_role, timezone)

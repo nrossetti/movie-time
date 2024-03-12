@@ -273,7 +273,26 @@ class MovieCommands:
         except Exception as e:
             logger.error(f"Error in next_event: {e}")
             raise e
-            
+    
+    async def cancel_movie_night(self, interaction, movie_night_id: int):
+        movie_night = self.movie_night_manager.get_movie_night(movie_night_id)
+        
+        if not movie_night:
+            await interaction.response.send_message("Movie Night not found.", ephemeral=True)
+            return
+        
+        # Delete movie events associated with this movie night
+        for event in movie_night.events:
+            if event.discord_event_id:
+                # Delete the Discord event post, if any
+                await self.discord_events.delete_event(guild_id=interaction.guild.id, event_id=event.discord_event_id)
+            self.movie_event_manager.remove_movie_event(event.id)
+        
+        # Delete the movie night itself
+        self.movie_night_manager.delete_movie_night(movie_night_id)
+        
+        await interaction.response.send_message(f"Movie Night {movie_night_id} and its events have been canceled and deleted.", ephemeral=True)   
+                 
 class ConfigCommands:
     def __init__(self, config_manager):
         self.config_manager = config_manager

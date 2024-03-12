@@ -1,7 +1,7 @@
-*.ini
 __pycache__
 .venv
 /storage
 secrets.json
 *.db
 /tests
+*.log
