@@ -85,8 +85,4 @@ The bot emphasizes responsible data access by leveraging TMDb to obtain detailed
 
 ### Support and Contribution
 
-For support or to contribute to the development of Movie Time Bot, please contact the repository owner or follow the guidelines provided in the repository's contributing documentation.
-
-### Project Management
-
-Track the development progress and participate in planning on our [Trello board](https://trello.com/b/aQVszL6b/movie-bot).
+For support or to contribute to the development of Movie Time Bot, please contact the repository owner
