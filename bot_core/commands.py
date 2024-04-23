@@ -294,39 +294,38 @@ class MovieCommands:
                 await interaction.followup.send(f"No Movie Night found with ID: {movie_night_id}")
                 return
 
-            if movie_night.current_movie_index >= len(movie_night.events) - 1:
-                await interaction.followup.send("Movie Night has ended. All movies have been played.")
-                logger.info(f"Movie night ID {movie_night_id} has ended. All movies have been played.")
-                return
-            elif movie_night.current_movie_index == -1:
-                movie_night.current_movie_index = 0
-                self.movie_night_manager.update_movie_night(movie_night)
-                logger.info(f"Started first movie of movie night ID {movie_night_id}")
-            else:
-                movie_night.current_movie_index += 1
-                self.movie_night_manager.update_movie_night(movie_night)
-                logger.info(f"Proceeded to next movie in movie night ID {movie_night_id}")
-
             current_movie_event = self.movie_night_manager.get_current_movie_event(movie_night_id)
-            if current_movie_event:
-                now_playing_embed = await post_now_playing(current_movie_event, self.ping_role_id)
+            if not current_movie_event:
+                await interaction.followup.send("No current movie event found.")
+                return
 
-                if self.announcement_channel_id:
-                    announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
-                    if announcement_channel and announcement_channel.permissions_for(interaction.guild.me).send_messages:
-                        await announcement_channel.send(embed=now_playing_embed)
-                    else:
-                        await interaction.followup.send("Unable to post in the announcement channel.")
+            movie_name = current_movie_event.movie.name if current_movie_event.movie else "Unknown Movie"
+
+            if movie_night.status == 0:
+                await self.movie_night_service.start_first_event(movie_night)
+                await interaction.followup.send(f"Started the first movie: {movie_name}")
+                logger.info(f"Started movie night ID {movie_night_id} with first movie: {movie_name}")
+            elif movie_night.current_movie_index < len(movie_night.events) - 1:
+                await self.movie_night_service.transition_to_next_event(movie_night)
+                await interaction.followup.send(f"Started the next movie: {movie_name}")
+                logger.info(f"Proceeded to next movie in movie night ID {movie_night_id}: {movie_name}")
+            else:
+                await self.movie_night_service.end_last_event(movie_night)
+                await interaction.followup.send(f"Movie Night has ended.")
+                logger.info(f"Ended movie night ID {movie_night_id}. Last movie was: {movie_name}")
+           
+            now_playing_embed = await post_now_playing(current_movie_event, self.ping_role_id)
+            if self.announcement_channel_id:
+                announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
+                if announcement_channel and announcement_channel.permissions_for(interaction.guild.me).send_messages:
+                    await announcement_channel.send(embed=now_playing_embed)
                 else:
-                    await interaction.followup.send("Announcement channel is not configured.")
-
-                next_movie_title = current_movie_event.movie.name
-                await interaction.followup.send(f"Next movie started: {next_movie_title}")
-                logger.info(f"Started next movie: {next_movie_title} in movie night ID {movie_night_id}")
+                    await interaction.followup.send("Unable to post in the announcement channel.")
+                    
         except Exception as e:
             logger.error(f"Error in next_event: {e}")
-            raise e
-    
+            await interaction.followup.send("An error occurred while processing the request.")
+
     async def cancel_movie_night(self, interaction, movie_night_id: int):
         movie_night = self.movie_night_manager.get_movie_night(movie_night_id)
         
