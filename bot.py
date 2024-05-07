@@ -12,7 +12,7 @@ from bot_core.commands import MovieCommands, ConfigCommands, HelpCommands
 from utils.config_manager import ConfigManager
 from bot_core.helpers import TimeZones
 
-log_directory = os.path.join('movie-time', 'storage', 'logs')
+log_directory = os.path.join('storage', 'logs')
 log_filename = os.path.join(log_directory, 'bot.log')
 
 if not os.path.exists(log_directory):
