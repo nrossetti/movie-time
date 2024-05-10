@@ -301,26 +301,23 @@ class MovieCommands:
                 await interaction.followup.send(f"No Movie Night found with ID: {movie_night_id}")
                 return
 
-            current_movie_event = self.movie_night_manager.get_current_movie_event(movie_night_id)
-            if not current_movie_event:
-                await interaction.followup.send("No current movie event found.")
-                return
-
-            movie_name = current_movie_event.movie.name if current_movie_event.movie else "Unknown Movie"
-
             if movie_night.status == 0:
                 await self.movie_night_service.start_first_event(movie_night)
-                await interaction.followup.send(f"Started the first movie: {movie_name}")
-                logger.info(f"Started movie night ID {movie_night_id} with first movie: {movie_name}")
+                current_movie_event = self.movie_night_manager.get_current_movie_event(movie_night_id)
+                movie_name = current_movie_event.movie.name if current_movie_event.movie else "Unknown Movie"
+                message = f"Started the first movie: {movie_name}"
             elif movie_night.current_movie_index < len(movie_night.events) - 1:
                 await self.movie_night_service.transition_to_next_event(movie_night)
-                await interaction.followup.send(f"Started the next movie: {movie_name}")
-                logger.info(f"Proceeded to next movie in movie night ID {movie_night_id}: {movie_name}")
+                current_movie_event = self.movie_night_manager.get_current_movie_event(movie_night_id)
+                movie_name = current_movie_event.movie.name if current_movie_event.movie else "Unknown Movie"
+                message = f"Started the next movie: {movie_name}"
             else:
                 await self.movie_night_service.end_last_event(movie_night)
                 await interaction.followup.send(f"Movie Night has ended.")
-                logger.info(f"Ended movie night ID {movie_night_id}. Last movie was: {movie_name}")
-           
+                logger.info(f"Ended movie night ID {movie_night_id}.")
+                return
+
+            await interaction.followup.send(message)
             now_playing_embed = await post_now_playing(current_movie_event, self.ping_role_id)
             if self.announcement_channel_id:
                 announcement_channel = interaction.guild.get_channel(self.announcement_channel_id)
