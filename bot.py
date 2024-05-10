@@ -10,22 +10,13 @@ from services.movie_night_service import MovieNightService
 from services.movie_scraper import MovieScraper
 from bot_core.commands import MovieCommands, ConfigCommands, HelpCommands
 from utils.config_manager import ConfigManager
+from utils.logging_config import setup_logging
 from bot_core.helpers import TimeZones
 
-log_directory = os.path.join('storage', 'logs')
-log_filename = os.path.join(log_directory, 'bot.log')
+setup_logging()
+logger = logging.getLogger(__name__)
+logger.info("Application is starting up...")
 
-if not os.path.exists(log_directory):
-    os.makedirs(log_directory)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        RotatingFileHandler(log_filename, maxBytes=5*1024*1024, backupCount=5),
-        logging.StreamHandler()
-    ]
-)
 config_manager = ConfigManager()
 secrets = SecretManager().load_secrets()
 token = secrets['token']

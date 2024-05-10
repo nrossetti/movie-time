@@ -79,6 +79,7 @@ class MovieCommands:
             if not movie_urls:
                 await interaction.followup.send("No valid movie URLs provided.")
                 return
+            logger.debug(f"Starting to add movies with URLs: {movie_urls} to movie night ID: {movie_night_id}")
             await self.process_movie_urls(interaction, movie_urls, movie_night_id)
             logger.info(f"Added movies to movie night ID {movie_night_id}: {movie_urls}")
         except Exception as e:
@@ -97,9 +98,13 @@ class MovieCommands:
             discord_event_ids = []
 
             for movie_url in movie_urls:
+                logger.debug(f"Attempting to add movie from URL: {movie_url} to movie night ID: {movie_night_id}")
                 result = await self.movie_night_service.add_movie_to_movie_night(movie_night_id, movie_url)
+                logger.debug(f"Received result for movie URL {movie_url}: {result}")
                 if not result:
+                    logger.debug(f"Failed to add movie: {movie_url}, starting rollback")
                     raise Exception(f'Failed to add movie: "{movie_url}".')
+
 
                 movie_event_id, discord_event_id = result
                 added_movies.append(movie_event_id)
@@ -115,7 +120,7 @@ class MovieCommands:
 
             for event_id in discord_event_ids:
                 await self.discord_events.delete_event(guild_id=interaction.guild.id, event_id=event_id)
-
+            logger.error(f"Exception occurred while processing movies: {e}, rolling back added movies and events")
             await interaction.followup.send(f"An error occurred: {e}. All added movies have been rolled back.")
             logger.error(f"Error in process_movie_urls: {e}")
             raise e
@@ -176,13 +181,15 @@ class MovieCommands:
                 new_post_ids.append(str(message.id))
                 logger.info(f"Posted or updated movie night details with message ID {message.id}")
 
-            self.movie_night_manager.update_discord_post_id(movie_night_id, ",".join(new_post_ids))
+            self.movie_night_manager.update_movie_night_post_ids(movie_night_id, ",".join(new_post_ids))
             await interaction.followup.send(f"Movie Night details posted successfully. ID: {movie_night_id}. Post IDs: {', '.join(new_post_ids)}")
         except Exception as e:
             logger.error(f"An error occurred while posting the Movie Night: {e}")
             await interaction.followup.send("An error occurred while posting the Movie Night.")
     
     async def update_movie_night_post(self, interaction, movie_night_id: int):
+        await interaction.response.defer()
+        
         movie_night = self.movie_night_manager.get_movie_night(movie_night_id)
         if not movie_night:
             await interaction.followup.send(f"No movie night found with ID: {movie_night_id}")
@@ -216,7 +223,7 @@ class MovieCommands:
             message = await announcement_channel.send(embeds=embed_chunk)
             new_post_ids.append(str(message.id))
 
-        self.movie_night_manager.update_discord_post_id(movie_night_id, ",".join(new_post_ids))
+        self.movie_night_manager.update_movie_night_post_ids(movie_night_id, ",".join(new_post_ids))
 
         await interaction.followup.send("Movie night details updated successfully.")
 

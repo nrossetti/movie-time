@@ -2,6 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 from tmdbv3api import TMDb, Movie, Search
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MovieScraper:
     def __init__(self, api_key):
@@ -11,42 +14,51 @@ class MovieScraper:
         self.movie = Movie()
     
     def normalize_letterboxd_url(self, url: str) -> str:
+        logger.debug(f"Normalizing URL: {url}")
         if "boxd.it" in url:
             try:
                 response = requests.get(url, allow_redirects=True)
                 if response.status_code == 200:
-                    return response.url  # This should be the final URL after following the redirect
+                    logger.debug(f"Resolved URL to: {response.url}")
+                    return response.url 
                 else:
-                    print(f"Failed to resolve URL: {url}. Status code: {response.status_code}")
+                    logger.warning(f"Failed to resolve URL: {url}. Status code: {response.status_code}")
                     return None
             except Exception as e:
-                print(f"An error occurred while resolving URL: {e}")
+                logger.error(f"An error occurred while resolving URL: {e}")
                 return None
         else:
-            return url  # If it's already a standard URL, return it as is
+            return url
         
     def extract_movie_details_from_letterboxd(self, url):
+        """ Extracts movie details from a given Letterboxd URL """
         try:
             response = requests.get(url)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
-            title_element = soup.find('h1', class_='headline-1')
-            year_element = soup.find('small', class_='number')
             
+            title_element = soup.find('h1', class_='headline-1')
+            year_element = soup.find('div', class_='releaseyear')
+
             if title_element and year_element:
-                title = title_element.text.strip()
-                year = year_element.text.strip()
+                title = title_element.get_text(strip=True).replace(u'\xa0', u' ')
+                year = year_element.get_text(strip=True)
+                logger.debug(f"Extracted title: {title}, year: {year}")
                 return title, year
             else:
+                logger.warning("Failed to extract title and/or year.")
                 return None, None
         except Exception as e:
-            print(f"An error occurred while extracting details from Letterboxd: {e}")
+            logger.error(f"An error occurred while extracting details from Letterboxd: {e}")
             return None, None
 
+
     def get_movie_details_from_tmdb_by_title_and_year(self, title, year):
+        logger.debug(f"Fetching movie details from TMDB for title: {title}, year: {year}")
         try:
             movie_id = self.search_tmdb_for_movie_id(title, year)
             if movie_id is None:
+                logger.warning(f"No TMDB ID found for movie: {title}, {year}")
                 return None
 
             details = self.movie.details(movie_id)
@@ -62,6 +74,7 @@ class MovieScraper:
             overview = details.get('overview', 'No overview available')
             release_date = details.get('release_date', 'Unknown')
 
+            logger.debug(f"Extracted TMDB details for {title}")
             return {
                 'name': details['title'],
                 'year': details['release_date'].split('-')[0],
@@ -75,10 +88,11 @@ class MovieScraper:
                 'release_date': release_date,
             }
         except Exception as e:
-            print(f"An error occurred while fetching details from TMDB: {e}")
+            logger.error(f"An error occurred while fetching details from TMDB: {e}")
             return None
 
     def get_movie_details_from_url(self, url):
+        logger.debug(f"Getting movie details from URL: {url}")
         normalized_url = self.normalize_letterboxd_url(url)
         if normalized_url and "letterboxd.com" in normalized_url:
             title, year = self.extract_movie_details_from_letterboxd(normalized_url)
@@ -91,10 +105,13 @@ class MovieScraper:
             return None
 
     def search_tmdb_for_movie_id(self, title, year):
+        logger.debug(f"Searching TMDB for movie ID with title: {title}, year: {year}")
         search = Search()
         results = search.movies({'query': title, 'year': year})
         
         if results:
+            logger.debug(f"Found TMDB ID for {title}: {results[0]['id']}")
             return results[0]['id']
         else:
+            logger.warning(f"No results found in TMDB for title: {title}, year: {year}")
             return None
