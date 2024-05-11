@@ -182,7 +182,7 @@ class MovieCommands:
                 logger.info(f"Posted or updated movie night details with message ID {message.id}")
 
             self.movie_night_manager.update_movie_night_post_ids(movie_night_id, ",".join(new_post_ids))
-            await interaction.followup.send(f"Movie Night details posted successfully. ID: {movie_night_id}. Post IDs: {', '.join(new_post_ids)}")
+            await interaction.followup.send(f"Movie Night details posted successfully. ID: {movie_night_id}")
         except Exception as e:
             logger.error(f"An error occurred while posting the Movie Night: {e}")
             await interaction.followup.send("An error occurred while posting the Movie Night.")
