@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  movie-time:
+    build:
+      context: .
+    container_name: movie-time
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - API_KEY=${API_KEY}
+      - GUILD_ID=${GUILD_ID}
+    volumes:
+      - .:/app
+    restart: unless-stopped

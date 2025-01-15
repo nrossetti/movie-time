@@ -20,7 +20,7 @@ logger.info("Application is starting up...")
 config_manager = ConfigManager()
 secrets = SecretManager().load_secrets()
 token = secrets['token']
-guild_id = secrets['guild_id']
+guild_id = int(secrets['guild_id'])
 api_key = secrets['api_key']
 db_session = SessionLocal()
 movie_scraper = MovieScraper(api_key)
