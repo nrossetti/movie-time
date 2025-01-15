@@ -3,8 +3,29 @@
 </p>
 <h1 align="center">Movie Time</h1>
 
+&nbsp; &nbsp; &nbsp; &nbsp;Movie Time Bot is a Discord bot designed to facilitate the scheduling and promotion of movie streaming events among friends on Discord. Its purpose is to make watching movies together an enjoyable and easy-to-manage experience. Movie Time's primary functions include configuring settings, generating movie posts, posting the latest movie schedules to specified channels, and managing movie events. Movie Time utilizes Letterboxd for linking movies and extracts detailed information from The Movie Database (TMDb) using their open and free API. Whether it's a casual movie night or a themed marathon, Movie Time brings friends together and takes care of the details. Future developments aim to expand functionality for broader use cases.
 
-&nbsp; &nbsp; &nbsp; &nbsp;Movie Time Bot is a Discord bot designed to facilitate the scheduling and promotion of movie streaming events among friends on Discord. Its purpose is to make watching movies together an enjoyable and easy-to-manage experience. Movie Time primary functions include configuring settings, generating movie posts, posting the latest movie schedules to specified channels, and managing movie events. Movie Time utilizes Letterboxd for linking movies and extracts detailed information from The Movie Database (TMDb) using their open and free API. Whether it's a casual movie night or a themed marathon, Movie Time brings friends together and takes care of the details. While currently tailored to a specific use case, future developments aim to provide more generic implementations and features.
+---
+
+### Index
+
+- [Features](#features)
+  - [Current Functionality](#current-functionality)
+  - [Planned Functionality](#planned-functionality)
+- [Configuration](#configuration)
+  - [Using `secrets.json`](#using-secretsjson)
+  - [Using Environment Variables](#using-environment-variables)
+- [Commands](#commands)
+  - [Configuration Commands](#configuration-commands)
+  - [Movie Management Commands](#movie-management-commands)
+  - [Utility Commands](#utility-commands)
+- [Typical Deployment](#typical-deployment)
+- [Dependencies](#dependencies)
+- [Notes](#notes)
+- [Future Ideas](#future-ideas)
+- [Support and Contribution](#support-and-contribution)
+
+---
 
 ### Features
 
@@ -12,6 +33,8 @@
 
 1. **Configuration Management**: Administrators can set up the bot's behavior within their guild.
 2. **Schedule and Post Generation**: Automatically generates and posts movie schedules.
+3. **Event Management**: Allows administrators to create, edit, and delete events.
+4. **Multi-Movie Platform Support**: Accepts movie links from Letterboxd and additional sites like IMDb for movie input.
 
 <p align="center">
   <img width=400 height=468 src="https://github.com/nrossetti/movie-time/assets/23127108/3c54397a-f712-4ae6-9cdf-f34163e10fcf">
@@ -19,70 +42,133 @@
 
 #### Planned Functionality
 
-1. **Automatic Event Creation and Management**: Will allow administrators to automatically create and manage movie events, including editing existing events and posts.
-2. **Support for Multiple Movie Sites**: In addition to Letterboxd, future updates will allow for movie input links from IMDb and other popular movie platforms.
-3. **Docker Compose Deployment**: Support for containerized deployment using Docker Compose, ensuring smooth installation and execution.
+1. **Expanded Event Management**: Automatic creation and management of movie events with richer customization options.
+2. **Web Application Component**: A web interface for configuring, editing, and viewing movie nights directly through a browser.
 
 ### Configuration
 
-#### `secrets.json` Configuration
+#### `secrets.json` or Environment Variables
 
-The `secrets.json` file is used to store sensitive information required by the bot, such as API keys. Ensure this file is properly configured and kept secure.
+Movie Time supports two configuration methods: using a `secrets.json` file or setting environment variables for sensitive information.
+
+##### Using `secrets.json`
+
+The `secrets.json` file stores sensitive information required by the bot, such as API keys and Discord tokens. Ensure this file is properly configured and kept secure.
 
 Example Configuration:
-```
+```json
 {
     "api_key": "TMDB_api_key",
     "token": "discord_bot_token",
-    "guild_id": guild_id
+    "guild_id": "guild_id"
 }
 ```
+
+##### Using Environment Variables
+
+Alternatively, you can provide the same information using environment variables:
+
+For Unix/Linux/macOS:
+```bash
+export TMDB_API_KEY="your_tmdb_api_key"
+export DISCORD_BOT_TOKEN="your_discord_bot_token"
+export GUILD_ID="your_guild_id"
+```
+
+For Windows:
+```cmd
+set TMDB_API_KEY=your_tmdb_api_key
+set DISCORD_BOT_TOKEN=your_discord_bot_token
+set GUILD_ID=your_guild_id
+```
+
 ### Commands
-**\*\* This outdated - See commands.py or bot.py to see current commands**
 
-#### 1. `/config`
+Here are the updated commands available:
 
-This command is used to configure the bot's settings.
+#### Configuration Commands
 
-- **Parameters:**
-  - `default_timezone`: Set the default timezone for the guild (e.g., 'EST', 'PST').
-  - `stream_channel`: Set the VoiceChannel where the streaming will occur.
-  - `announcement_channel`: Set the TextChannel where announcements will be made.
-  - `ping_role`: Set the role that will be pinged in announcements.
+1. **`/config`**
+   - Configure the bot's settings for the guild.
+   - **Parameters:**
+     - `default_timezone`: Set the default timezone for the guild (e.g., 'EST', 'PST').
+     - `stream_channel`: Set the VoiceChannel for streaming.
+     - `announcement_channel`: Set the TextChannel for announcements.
+     - `ping_role`: Set the role to be pinged in announcements.
 
-#### 2. `/post`
+#### Movie Management Commands
 
-This command posts the most recent generated movie schedule to the configured announcement channel.
+2. **`/post`**
+   - Posts the latest generated movie schedule to the configured announcement channel.
 
-#### 3. `/create_movie_post`
+3. **`/create_movie_post`**
+   - Generates a movie post with details of the movies provided.
+   - **Parameters:**
+     - `start_time`: The starting time of the event.
+     - `theme_name`: The theme name for the movie night.
+     - `description`: Description of the event.
+     - `movie_urls`: List of movie URLs.
 
-This command generates a movie post including details of the movies provided.
+4. **`/delete_event`**
+   - Deletes a specified movie event.
 
-- **Parameters:**
-  - `start_time`: The starting time of the event.
-  - `theme_name`: Theme name for the movie night.
-  - `description`: Description of the movie event.
-  - `movie_urls`: A list of URLs to the movies.
+5. **`/list_events`**
+   - Lists all upcoming movie events in the guild.
+
+#### Utility Commands
+
+6. **`/help`**
+   - Displays detailed information about available commands and their usage.
+
+### Typical Deployment
+
+You can deploy Movie Time using Docker for a smooth installation process. Follow these steps:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/nrossetti/movie-time.git
+   cd movie-time
+   ```
+
+2. Build and run the Docker container:
+   ```bash
+   docker-compose up --build
+   ```
+
+3. Set environment variables in a `.env` file or export them directly to the shell:
+
+For Unix/Linux/macOS:
+   ```bash
+   TMDB_API_KEY="your_tmdb_api_key"
+   DISCORD_BOT_TOKEN="your_discord_bot_token"
+   GUILD_ID="your_guild_id"
+   ```
+
+For Windows:
+   ```cmd
+   set TMDB_API_KEY=your_tmdb_api_key
+   set DISCORD_BOT_TOKEN=your_discord_bot_token
+   set GUILD_ID=your_guild_id
+   ```
+
+   Alternatively, use a `secrets.json` file as described above.
 
 ### Dependencies
 
-- **discord.py** for Discord API interactions.
-- **pytz** for timezone handling.
+- **discord.py**: For Discord API interactions.
+- **pytz**: For timezone handling.
+- **TMDb API**: For fetching movie details.
 
 ### Notes
 
-- The token used for running the client should be kept private and secure.
-- Ensure the proper permissions are set for the bot, particularly for reading and sending messages in channels and accessing role details.
-- **Customization**: The current functionality is tailored to a specific use case but will be transitioning to more generic implementation and features as development continues.
-
-### Responsible Data Access
-
-The bot emphasizes responsible data access by leveraging TMDb to obtain detailed movie information and only scrapes the name and date to allow users to use any site to specify a movie. This approach ensures the bot's functionality remains reliable, ethical, and in compliance with various platform terms.
+- Ensure proper permissions are set for the bot to function correctly, including sending messages and accessing roles in the server.
+- The bot is designed with security in mind, ensuring sensitive data like tokens and API keys are handled responsibly.
 
 ### Future Ideas
 
-- **API Access to Letterboxd**: Exploring the potential integration with Letterboxd's API (if available in the future) would open many new features and enhance the bot's capabilities.
+- **Letterboxd API Access**: Explore integration with Letterboxd's API to enhance features.
+- **Custom Themes and Styles**: Allow for customized movie posts with themes.
 
 ### Support and Contribution
 
-For support or to contribute to the development of Movie Time Bot, please contact the repository owner
+For support or to contribute to the development of Movie Time, please contact the repository owner via GitHub.
