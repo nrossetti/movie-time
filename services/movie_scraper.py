@@ -31,27 +31,30 @@ class MovieScraper:
             return url
         
     def extract_movie_details_from_letterboxd(self, url):
-        """ Extracts movie details from a given Letterboxd URL """
         try:
             response = requests.get(url)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
-            
-            title_element = soup.find('h1', class_='headline-1')
-            year_element = soup.find('div', class_='releaseyear')
 
-            if title_element and year_element:
-                title = title_element.get_text(strip=True).replace(u'\xa0', u' ')
-                year = year_element.get_text(strip=True)
-                logger.debug(f"Extracted title: {title}, year: {year}")
-                return title, year
-            else:
-                logger.warning("Failed to extract title and/or year.")
+            content_wrap = soup.find('div', class_='content-wrap')
+            if not content_wrap:
+                logger.warning("Failed to find 'content-wrap' div")
                 return None, None
+
+            title_element = content_wrap.find('h1', class_='headline-1 filmtitle')
+            year_element = content_wrap.find('div', class_='releaseyear')
+
+            title = title_element.get_text(strip=True) if title_element else None
+            year = year_element.find('a').get_text(strip=True) if year_element and year_element.find('a') else None
+
+            if not title or not year:
+                logger.warning(f"Failed to extract title or year from URL: {url}")
+
+            logger.debug(f"Extracted title: {title}, year: {year}")
+            return title, year
         except Exception as e:
             logger.error(f"An error occurred while extracting details from Letterboxd: {e}")
             return None, None
-
 
     def get_movie_details_from_tmdb_by_title_and_year(self, title, year):
         logger.debug(f"Fetching movie details from TMDB for title: {title}, year: {year}")
