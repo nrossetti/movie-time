@@ -9,10 +9,10 @@ class DiscordEvents:
             'Content-Type': 'application/json'
         }
 
-    async def create_event(self, guild_id, channel_id, name, description, start_time, image_data=None):
+    async def create_event(self, guild_id, channel_id, name, description, start_time, movie_url, image_data=None, ):
         event_data = {
             'name': name,
-            'description': description,
+            'description': description + "\n\n" + movie_url,
             'scheduled_start_time': start_time,
             'entity_type': 2,
             'channel_id': channel_id,

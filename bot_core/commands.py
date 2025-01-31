@@ -17,7 +17,7 @@ class MovieCommands:
         self.discord_events = DiscordEvents(discord_token)
         self.server_timezone = TimeZones.UTC
         logger.info("MovieCommands initialized")
-
+    
     def parse_movie_urls(self, movie_urls):
         if isinstance(movie_urls, str):
             movie_urls = list(filter(None, re.split(r'[,\t\s]+', movie_urls)))

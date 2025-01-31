@@ -90,7 +90,8 @@ class MovieNightService:
                         event_title,
                         movie.overview,
                         new_start_time_iso,
-                        image_data=image_data  
+                        image_data=image_data,
+                        movie_url=movie_url  
                     )
                     if discord_event and 'id' in discord_event:
                         movie_event.discord_event_id = discord_event['id']
